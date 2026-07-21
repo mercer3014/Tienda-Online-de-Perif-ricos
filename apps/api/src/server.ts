@@ -1,0 +1,30 @@
+import { env } from './config/env.js';
+import { createApp } from './app.js';
+import { prisma } from './lib/prisma.js';
+
+async function main() {
+  // Verifica conexion a la base antes de escuchar.
+  await prisma.$connect();
+  const app = createApp();
+  const server = app.listen(env.API_PORT, () => {
+    // eslint-disable-next-line no-console
+    console.log(`[API] Villano Gamer Store escuchando en http://localhost:${env.API_PORT}/api`);
+  });
+
+  const shutdown = async (signal: string) => {
+    // eslint-disable-next-line no-console
+    console.log(`\n[API] ${signal} recibido, cerrando...`);
+    server.close();
+    await prisma.$disconnect();
+    process.exit(0);
+  };
+  process.on('SIGINT', () => shutdown('SIGINT'));
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+}
+
+main().catch(async (err) => {
+  // eslint-disable-next-line no-console
+  console.error('[API] Error fatal al iniciar:', err);
+  await prisma.$disconnect().catch(() => undefined);
+  process.exit(1);
+});

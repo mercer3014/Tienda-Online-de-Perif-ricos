@@ -1,0 +1,90 @@
+import sharp from 'sharp';
+import { randomUUID } from 'node:crypto';
+import { mkdir, writeFile, unlink } from 'node:fs/promises';
+import path from 'node:path';
+import { prisma } from '../../lib/prisma.js';
+import { env } from '../../config/env.js';
+import { badRequest, notFound } from '../../lib/errors.js';
+import { writeAudit } from '../../lib/audit.js';
+
+const PRODUCTS_DIR = path.join(env.uploadDirAbs, 'products');
+
+/**
+ * Procesa una imagen con Sharp (redimension + compresion + WebP) y la guarda.
+ * Convierte SIEMPRE a WebP antes de almacenar.
+ */
+export async function processAndStoreImage(
+  productId: string,
+  file: { buffer: Buffer; mimetype: string },
+  userId: string,
+) {
+  const product = await prisma.product.findUnique({ where: { id: productId } });
+  if (!product) throw notFound('Producto no encontrado');
+  if (!file.mimetype.startsWith('image/')) throw badRequest('El archivo no es una imagen valida');
+
+  await mkdir(PRODUCTS_DIR, { recursive: true });
+
+  const fileName = `${productId}-${randomUUID()}.webp`;
+  const absPath = path.join(PRODUCTS_DIR, fileName);
+
+  try {
+    const webp = await sharp(file.buffer)
+      .rotate() // respeta orientacion EXIF
+      .resize({ width: 1200, height: 1200, fit: 'inside', withoutEnlargement: true })
+      .webp({ quality: 82 })
+      .toBuffer();
+    await writeFile(absPath, webp);
+  } catch {
+    throw badRequest('No se pudo procesar la imagen (formato no soportado o corrupta)');
+  }
+
+  const urlWebp = `/uploads/products/${fileName}`;
+  const existingCount = await prisma.productImage.count({ where: { productId } });
+  const image = await prisma.productImage.create({
+    data: {
+      productId,
+      urlWebp,
+      displayOrder: existingCount,
+      isPrimary: existingCount === 0, // la primera imagen es la principal
+    },
+  });
+
+  await writeAudit({ userId, action: 'gestionar_imagenes', entityType: 'product', entityId: productId, newValue: { added: urlWebp } });
+  return image;
+}
+
+export async function setPrimaryImage(imageId: string, userId: string) {
+  const image = await prisma.productImage.findUnique({ where: { id: imageId } });
+  if (!image) throw notFound('Imagen no encontrada');
+  await prisma.$transaction([
+    prisma.productImage.updateMany({ where: { productId: image.productId }, data: { isPrimary: false } }),
+    prisma.productImage.update({ where: { id: imageId }, data: { isPrimary: true } }),
+  ]);
+  await writeAudit({ userId, action: 'gestionar_imagenes', entityType: 'product', entityId: image.productId, newValue: { primary: image.urlWebp } });
+  return prisma.productImage.findMany({ where: { productId: image.productId }, orderBy: { displayOrder: 'asc' } });
+}
+
+export async function deleteImage(imageId: string, userId: string) {
+  const image = await prisma.productImage.findUnique({ where: { id: imageId } });
+  if (!image) throw notFound('Imagen no encontrada');
+
+  await prisma.productImage.delete({ where: { id: imageId } });
+
+  // Borra el archivo fisico (si esta bajo uploads/products).
+  if (image.urlWebp.startsWith('/uploads/products/')) {
+    const abs = path.join(env.uploadDirAbs, 'products', path.basename(image.urlWebp));
+    await unlink(abs).catch(() => undefined);
+  }
+
+  // Si borramos la principal, promover otra.
+  if (image.isPrimary) {
+    const next = await prisma.productImage.findFirst({
+      where: { productId: image.productId },
+      orderBy: { displayOrder: 'asc' },
+    });
+    if (next) await prisma.productImage.update({ where: { id: next.id }, data: { isPrimary: true } });
+  }
+
+  await writeAudit({ userId, action: 'gestionar_imagenes', entityType: 'product', entityId: image.productId, oldValue: { removed: image.urlWebp } });
+  return { id: imageId };
+}
