@@ -27,6 +27,16 @@ function buildTree(rows: Row[], counts: Map<string, number>): CategoryNode[] {
     nodes.forEach((n) => sortRec(n.children));
   };
   sortRec(roots);
+
+  // Acumula el conteo de productos de los descendientes en cada padre
+  // (una categoria padre muestra el total disponible en su subarbol).
+  const rollup = (node: CategoryNode): number => {
+    const childrenTotal = node.children.reduce((sum, c) => sum + rollup(c), 0);
+    node.productCount = (node.productCount ?? 0) + childrenTotal;
+    return node.productCount;
+  };
+  roots.forEach(rollup);
+
   return roots;
 }
 
