@@ -10,6 +10,5 @@ onlyBuiltDependencies:
   - esbuild
   - sharp
 
-# Evita el pre-chequeo de estado de dependencias antes de cada script
-# (falla por el script cosmetico de @prisma/engines en este entorno).
+# Evita el pre-chequeo de estado de dependencias antes de cada script.
 verifyDepsBeforeRun: false
