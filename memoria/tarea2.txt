@@ -1,0 +1,22 @@
+Fase 1: Setup inicial del monorepo.
+
+1. Inicializá el monorepo "villano-gamer-store" con workspaces de npm
+   (o pnpm si lo preferís, decime cuál usaste y por qué).
+2. Creá la estructura de carpetas exacta descrita en el contexto maestro:
+   apps/web, apps/admin, apps/api, packages/shared-types.
+3. Configurá TypeScript compartido (tsconfig base en la raíz, extendido
+   por cada app).
+4. Configurá ESLint + Prettier con reglas consistentes en todo el monorepo.
+5. Creá el docker-compose.yml con un servicio de PostgreSQL para desarrollo
+   local (puerto, volumen persistente, usuario/contraseña vía variables
+   de entorno del .env, NUNCA hardcodeadas).
+6. Creá el .env.example con todas las variables necesarias documentadas
+   (sin valores reales) y agregá .env al .gitignore.
+7. Configurá el package.json raíz con scripts para levantar todo el
+   proyecto en modo desarrollo (web, admin y api en paralelo).
+8. Inicializá git con un primer commit limpio.
+
+Al terminar: mostrame el árbol de carpetas final, confirmame que
+`docker-compose up` levanta Postgres correctamente, y hacé la
+auto-revisión indicada en el contexto maestro antes de darlo por
+terminado.

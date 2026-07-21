@@ -1,0 +1,15 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+
+# Dependencias autorizadas a ejecutar scripts de instalacion (binarios nativos).
+onlyBuiltDependencies:
+  - "@prisma/client"
+  - "@prisma/engines"
+  - prisma
+  - esbuild
+  - sharp
+
+# Evita el pre-chequeo de estado de dependencias antes de cada script
+# (falla por el script cosmetico de @prisma/engines en este entorno).
+verifyDepsBeforeRun: false

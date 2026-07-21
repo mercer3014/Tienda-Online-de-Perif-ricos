@@ -1,0 +1,49 @@
+Fase 3: Backend.
+
+Sobre apps/api, construí la API REST completa que va a consumir tanto el
+catálogo público como el panel admin.
+
+1. Estructurá el backend por módulos (products, categories, variants,
+   orders, users, roles, audit, metrics, location) como se definió en la
+   arquitectura de carpetas.
+2. Endpoints públicos (sin autenticación) para el catálogo:
+   - Listado y detalle de productos con filtros (categoría, subcategoría,
+     atributos, rango de precio) y paginación.
+   - Árbol de categorías.
+   - Creación de una orden al finalizar el carrito (POST /orders), que
+     guarda el pedido y devuelve los datos necesarios para armar el link
+     de WhatsApp en el frontend.
+   - Registro de eventos de producto (vista, clic WhatsApp, agregado a
+     carrito) para métricas.
+   - Estado de la tienda (abierta/cerrada calculado contra la hora de
+     Bolivia) y datos de ubicación.
+3. Endpoints protegidos (JWT) para el panel admin, con verificación de
+   permisos por rol en CADA endpoint (no confiar solo en el frontend):
+   CRUD de productos/variantes/imágenes, CRUD de categorías, gestión de
+   roles y permisos, listado de pedidos con cambio de estado, métricas
+   agregadas (más vistos, más agregados al carrito, abandono), y consulta
+   del audit log.
+4. Cada mutación relevante desde el panel admin (crear producto, editar
+   precio, cambiar stock, modificar categoría, cambiar permisos) debe
+   escribir automáticamente un registro en audit_log con el usuario,
+   la acción y el valor antes/después.
+5. Subida de imágenes: endpoint que recibe la imagen, la procesa con
+   Sharp (compresión + conversión a WebP), y la guarda en el storage
+   configurado.
+6. Validación de todo input con Zod (esquemas compartidos con
+   packages/shared-types) antes de tocar la base de datos.
+7. Seguridad: helmet, rate limiting en endpoints públicos, CORS
+   configurado correctamente (solo orígenes del frontend/admin
+   permitidos), bcrypt para contraseñas, manejo centralizado de errores
+   que nunca exponga detalles internos (stack traces, queries) al
+   cliente.
+8. Manejo de errores consistente: todas las respuestas de error siguen
+   un mismo formato JSON con código y mensaje entendible.
+
+Al terminar: mostrame la lista completa de endpoints con su método,
+ruta, si requiere auth y qué permiso exige. Probá manualmente (o con un
+script) el flujo completo: crear producto → crear variante → generar
+orden → verificar que quedó en audit_log si corresponde. Hacé la
+auto-revisión de seguridad (¿algún endpoint admin quedó sin verificar
+permisos? ¿algún dato sensible se está devolviendo de más, como el
+password_hash?) antes de darlo por terminado.

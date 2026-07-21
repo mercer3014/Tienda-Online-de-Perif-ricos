@@ -1,0 +1,39 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Environment (NUNCA commitear credenciales)
+.env
+.env.local
+.env.*.local
+apps/api/.env
+apps/web/.env
+apps/admin/.env
+
+# Build output
+dist/
+build/
+*.tsbuildinfo
+
+# Prisma
+apps/api/prisma/*.db
+
+# Uploads (imagenes procesadas)
+apps/api/uploads/
+!apps/api/uploads/.gitkeep
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Editor / OS
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json
+.idea/
+
+# Vite / cache
+.vite/
+coverage/
