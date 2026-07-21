@@ -1,0 +1,189 @@
+import { useEffect, useState, type FormEvent } from 'react';
+import { Link, NavLink, useNavigate } from 'react-router-dom';
+import clsx from 'clsx';
+import { useCart } from '../store/cart';
+import { useCategoryTree, useStoreStatus } from '../hooks/catalog';
+import { CartDrawer } from './CartDrawer';
+import { Spinner } from './ui';
+
+function StoreStatusPill() {
+  const { data, isLoading } = useStoreStatus();
+  if (isLoading) return <span className="text-xs text-txt-faint">…</span>;
+  if (!data) return null;
+  return (
+    <span
+      className={clsx(
+        'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold',
+        data.isOpen
+          ? 'border-status-stock/50 bg-status-stock/10 text-status-stock'
+          : 'border-status-out/50 bg-status-out/10 text-status-out',
+      )}
+    >
+      <span className={clsx('h-2 w-2 rounded-full bg-current', data.isOpen && 'animate-pulse-neon')} />
+      {data.isOpen ? 'Abierta Ahora' : 'Cerrada'}
+    </span>
+  );
+}
+
+export function Layout({ children }: { children: React.ReactNode }) {
+  const navigate = useNavigate();
+  const [search, setSearch] = useState('');
+  const [menuOpen, setMenuOpen] = useState(false);
+  const count = useCart((s) => s.count());
+  const openCart = useCart((s) => s.open);
+  const { data: categories, isLoading: catLoading } = useCategoryTree();
+
+  const onSearch = (e: FormEvent) => {
+    e.preventDefault();
+    const q = search.trim();
+    navigate(q ? `/catalogo?search=${encodeURIComponent(q)}` : '/catalogo');
+    setMenuOpen(false);
+  };
+
+  return (
+    <div className="flex min-h-screen flex-col">
+      <header className="sticky top-0 z-40 border-b border-base-border bg-base-black/85 backdrop-blur-md">
+        <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-3">
+          <button
+            className="rounded p-2 text-txt-muted hover:text-neon-purple lg:hidden"
+            onClick={() => setMenuOpen((o) => !o)}
+            aria-label="Abrir menu"
+            aria-expanded={menuOpen}
+          >
+            <span className="block h-0.5 w-6 bg-current" />
+            <span className="mt-1.5 block h-0.5 w-6 bg-current" />
+            <span className="mt-1.5 block h-0.5 w-6 bg-current" />
+          </button>
+
+          <Link to="/" className="shrink-0 font-display text-lg font-bold tracking-wider text-neon-purple-bright sm:text-xl">
+            VILLANO<span className="text-neon-green">·</span>GAMER
+          </Link>
+
+          <form onSubmit={onSearch} className="ml-auto hidden flex-1 max-w-md sm:block">
+            <input
+              type="search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Buscar mouse, teclados, componentes…"
+              className="w-full rounded-md border border-base-border bg-base-void px-3 py-2 text-sm text-txt-primary placeholder:text-txt-faint focus:border-neon-purple"
+              aria-label="Buscar productos"
+            />
+          </form>
+
+          <div className="ml-auto flex items-center gap-3 sm:ml-2">
+            <div className="hidden md:block">
+              <StoreStatusPill />
+            </div>
+            <button
+              onClick={openCart}
+              className="relative rounded-md border border-neon-purple/50 px-3 py-2 text-neon-purple-bright hover:bg-neon-purple/15 hover:shadow-neon-purple"
+              aria-label={`Carrito, ${count} articulos`}
+            >
+              🛒
+              {count > 0 && (
+                <span className="absolute -right-2 -top-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-neon-green px-1 text-xs font-bold text-base-black">
+                  {count}
+                </span>
+              )}
+            </button>
+          </div>
+        </div>
+
+        {/* Buscador mobile */}
+        <form onSubmit={onSearch} className="px-4 pb-3 sm:hidden">
+          <input
+            type="search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Buscar…"
+            className="w-full rounded-md border border-base-border bg-base-void px-3 py-2 text-sm"
+            aria-label="Buscar productos"
+          />
+        </form>
+
+        {/* Nav categorias desktop */}
+        <nav className="hidden border-t border-base-border/60 lg:block">
+          <div className="mx-auto flex max-w-7xl items-center gap-1 px-4 py-2 text-sm">
+            <NavLink to="/catalogo" className={({ isActive }) => clsx('rounded px-3 py-1.5 font-display uppercase tracking-wide', isActive ? 'text-neon-green' : 'text-txt-muted hover:text-neon-purple-bright')}>
+              Todo
+            </NavLink>
+            {catLoading && <Spinner className="h-4 w-4" />}
+            {categories?.map((c) => (
+              <NavLink
+                key={c.id}
+                to={`/catalogo?categoria=${c.slug}`}
+                className={({ isActive }) => clsx('rounded px-3 py-1.5 font-display uppercase tracking-wide', isActive ? 'text-neon-green' : 'text-txt-muted hover:text-neon-purple-bright')}
+              >
+                {c.name}
+                {c.isPromo && <span className="ml-1 text-neon-green">★</span>}
+              </NavLink>
+            ))}
+            <Link to="/ubicacion" className="ml-auto rounded px-3 py-1.5 font-display uppercase tracking-wide text-txt-muted hover:text-neon-purple-bright">
+              📍 Ubicacion
+            </Link>
+          </div>
+        </nav>
+      </header>
+
+      {/* Menu mobile desplegable */}
+      {menuOpen && (
+        <div className="border-b border-base-border bg-base-graphite lg:hidden">
+          <div className="flex flex-col gap-1 p-4">
+            <div className="mb-1"><StoreStatusPill /></div>
+            <MobileLink to="/catalogo" onClick={() => setMenuOpen(false)}>Todo el catalogo</MobileLink>
+            {categories?.map((c) => (
+              <MobileLink key={c.id} to={`/catalogo?categoria=${c.slug}`} onClick={() => setMenuOpen(false)}>
+                {c.name} {c.isPromo && <span className="text-neon-green">★</span>}
+              </MobileLink>
+            ))}
+            <MobileLink to="/ubicacion" onClick={() => setMenuOpen(false)}>📍 Ubicacion y horarios</MobileLink>
+          </div>
+        </div>
+      )}
+
+      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6">{children}</main>
+
+      <footer className="border-t border-base-border bg-base-void">
+        <div className="mx-auto max-w-7xl px-4 py-6 text-center text-sm text-txt-faint">
+          <p className="font-display uppercase tracking-widest text-txt-muted">Villano Gamer Store</p>
+          <p className="mt-1">Perifericos gamer · Santa Cruz de la Sierra, Bolivia</p>
+          <p className="mt-1">Pedidos coordinados por WhatsApp · Sin pago online</p>
+        </div>
+      </footer>
+
+      <CartDrawer />
+    </div>
+  );
+}
+
+function MobileLink({ to, children, onClick }: { to: string; children: React.ReactNode; onClick: () => void }) {
+  return (
+    <NavLink
+      to={to}
+      onClick={onClick}
+      className={({ isActive }) =>
+        clsx('rounded-md px-3 py-2.5 font-display uppercase tracking-wide', isActive ? 'bg-neon-purple/15 text-neon-green' : 'text-txt-primary hover:bg-base-panel')
+      }
+    >
+      {children}
+    </NavLink>
+  );
+}
+
+export { StoreStatusPill };
+
+// Efecto de titulo dinamico por pagina.
+export function usePageMeta(title: string, description?: string) {
+  useEffect(() => {
+    document.title = title ? `${title} · Villano Gamer Store` : 'Villano Gamer Store';
+    if (description) {
+      let tag = document.querySelector('meta[name="description"]');
+      if (!tag) {
+        tag = document.createElement('meta');
+        tag.setAttribute('name', 'description');
+        document.head.appendChild(tag);
+      }
+      tag.setAttribute('content', description);
+    }
+  }, [title, description]);
+}
