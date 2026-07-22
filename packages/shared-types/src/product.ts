@@ -34,6 +34,8 @@ export const createProductSchema = z.object({
   description: z.string().trim().max(5000).default(''),
   brand: z.string().trim().max(80).nullable().optional(),
   basePrice: z.coerce.number().positive().max(9_999_999),
+  // Precio "antes" (oferta). Debe ser mayor al precio actual si se envia.
+  originalPrice: z.coerce.number().positive().max(9_999_999).nullable().optional(),
   status: ProductStatus.default('activo'),
 });
 
@@ -96,6 +98,8 @@ export interface ProductListItemDTO {
   slug: string;
   brand: string | null;
   basePrice: number;
+  /** Precio "antes" (oferta). Null si el producto no esta en promocion. */
+  originalPrice: number | null;
   status: ProductStatus;
   categoryId: string;
   categorySlug: string;

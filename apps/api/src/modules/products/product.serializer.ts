@@ -33,6 +33,7 @@ export function toListItem(p: ProductWithRelations): ProductListItemDTO {
     slug: p.slug,
     brand: p.brand,
     basePrice: toNumber(p.basePrice),
+    originalPrice: p.originalPrice == null ? null : toNumber(p.originalPrice),
     status: p.status,
     categoryId: p.categoryId,
     categorySlug: p.category.slug,

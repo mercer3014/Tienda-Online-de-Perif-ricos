@@ -68,6 +68,8 @@ model Product {
   description String        @default("") @db.Text
   brand       String?       @db.VarChar(80)
   basePrice   Decimal       @map("base_price") @db.Decimal(12, 2)
+  // Precio "antes" para promociones (tachado en el catalogo). Null = sin oferta.
+  originalPrice Decimal?    @map("original_price") @db.Decimal(12, 2)
   // Borrado logico via status = inactivo (nunca DELETE fisico).
   status      ProductStatus @default(activo)
   createdAt   DateTime      @default(now()) @map("created_at")

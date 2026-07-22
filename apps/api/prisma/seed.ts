@@ -2,7 +2,7 @@
 import { PrismaClient, ProductStatus } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import sharp from 'sharp';
-import { mkdir, readdir, writeFile, rm } from 'node:fs/promises';
+import { mkdir, readFile, writeFile, rm } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -14,10 +14,9 @@ const DEFAULT_PASSWORD = 'Villano#2025';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SRC_IMAGES = path.resolve(__dirname, '../uploads/seed/catalogo_imagenes');
 const OUT_IMAGES = path.resolve(__dirname, '../uploads/seed/products');
+const MANIFEST = path.join(SRC_IMAGES, 'catalogo_manifest.csv');
 
-// -------------------------------------------------------------------------
-// Permisos, roles y usuarios (sin cambios).
-// -------------------------------------------------------------------------
+// -------------------------- Roles / permisos / usuarios -------------------
 const PERMISSIONS: { key: string; description: string }[] = [
   { key: 'ver_dashboard', description: 'Ver el panel principal y resumen' },
   { key: 'crear_producto', description: 'Crear productos nuevos' },
@@ -60,65 +59,58 @@ const USERS = [
   { name: 'Luz Marketing', email: 'marketing@villano.bo', role: 'Personal de Marketing' },
 ];
 
-// -------------------------------------------------------------------------
-// Mapeo de carpeta de imagenes -> categoria + atributos.
-// -------------------------------------------------------------------------
-type Conn = 'Cableado' | 'Inalambrico' | 'Bluetooth' | null;
-interface FolderCfg {
-  sub: string; // subcategoria
-  conn: Conn;
-  mechanical?: boolean;
-  magnetic?: boolean;
-  keyboard?: boolean;
-  priceRange: [number, number];
-}
-const FOLDER_CFG: Record<string, FolderCfg> = {
-  audifonos_1: { sub: 'Audifonos', conn: 'Inalambrico', priceRange: [180, 520] },
-  audifonos_2_y_auriculares: { sub: 'Audifonos', conn: 'Cableado', priceRange: [150, 480] },
-  cable_swiches_cooler_ventiladores: { sub: 'Coolers y Ventiladores', conn: null, priceRange: [60, 280] },
-  cargador_glasspad_brazo: { sub: 'Cargadores y Soportes', conn: null, priceRange: [90, 360] },
-  combo_y_gabinetes: { sub: 'Gabinetes', conn: null, priceRange: [220, 620] },
-  microfonos_y_mando: { sub: 'Microfonos y Mandos', conn: 'Cableado', priceRange: [150, 450] },
-  mouses_5_y_cableados_1: { sub: 'Mouse Gamer', conn: 'Cableado', priceRange: [90, 360] },
-  mouses_cableados_2: { sub: 'Mouse Gamer', conn: 'Cableado', priceRange: [110, 380] },
-  mouses_inalambricos_1: { sub: 'Mouse Gamer', conn: 'Inalambrico', priceRange: [160, 520] },
-  mouses_inalambricos_2: { sub: 'Mouse Gamer', conn: 'Inalambrico', priceRange: [180, 560] },
-  mouses_inalambricos_3: { sub: 'Mouse Gamer', conn: 'Inalambrico', priceRange: [200, 620] },
-  mouses_inalambricos_4: { sub: 'Mouse Gamer', conn: 'Inalambrico', priceRange: [200, 640] },
-  teclados_magneticos_inalambricos_2: { sub: 'Teclados', conn: 'Inalambrico', magnetic: true, keyboard: true, priceRange: [320, 780] },
-  teclados_magneticos_inalambricos_y_cableados: { sub: 'Teclados', conn: 'Cableado', magnetic: true, keyboard: true, priceRange: [300, 760] },
-  teclados_mecanicos_cableados: { sub: 'Teclados', conn: 'Cableado', mechanical: true, keyboard: true, priceRange: [260, 640] },
-  teclados_mecanicos_inalambricos: { sub: 'Teclados', conn: 'Inalambrico', mechanical: true, keyboard: true, priceRange: [320, 720] },
-};
-// Subcategoria -> categoria padre.
-const SUB_PARENT: Record<string, string> = {
+// -------------------------- Catalogo real (CSV) ---------------------------
+// Cada categoria del CSV -> categoria padre del arbol.
+const PARENT_OF: Record<string, string> = {
+  'Teclados Mecanicos': 'Teclados',
+  'Teclados Magneticos': 'Teclados',
   'Mouse Gamer': 'Perifericos',
-  Teclados: 'Perifericos',
-  Audifonos: 'Perifericos',
-  'Microfonos y Mandos': 'Perifericos',
-  'Coolers y Ventiladores': 'Componentes',
+  Audifonos: 'Audio',
+  Auriculares: 'Audio',
+  Microfonos: 'Audio',
+  'Mando GameSir': 'Accesorios',
+  Cargador: 'Accesorios',
+  'Glass Pad': 'Accesorios',
+  'Brazo para Monitor': 'Accesorios',
+  'Cable Enrollado': 'Accesorios',
+  Switches: 'Accesorios',
+  Cooler: 'Componentes',
+  Ventiladores: 'Componentes',
+  'Combo Ventiladores': 'Componentes',
   Gabinetes: 'Componentes',
-  'Cargadores y Soportes': 'Accesorios',
 };
+const PARENT_ORDER = ['Teclados', 'Perifericos', 'Audio', 'Componentes', 'Accesorios'];
 
-const BRANDS = ['attack shark', 'logitech', 'razer', 'gravastar', 'mchose', 'onikuma', 'ajazz', 'atk', 'irok', 'scyrox', 'vgn', 'vxe', 'nb', 'gabinete', 'cpu', 'attack'];
+// Distribucion de stock deterministica (cubre agotado / pocas / en stock).
+const STOCKS = [12, 8, 20, 5, 15, 3, 10, 18, 0, 7, 14, 4, 9, 25, 2, 11];
 
-// hash deterministico simple.
-function hash(s: string): number {
-  let h = 0;
-  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
-  return h;
+interface Row {
+  categoria: string;
+  subcategoria: string;
+  producto: string;
+  marca: string;
+  antes: string;
+  ahora: string;
+  imagenes: string[];
 }
-function titleCase(s: string): string {
-  return s.replace(/[_+=]+/g, ' ').replace(/\s+/g, ' ').trim()
-    .split(' ').map((w) => (w ? w[0].toUpperCase() + w.slice(1) : w)).join(' ');
+
+function parseCsv(text: string): Row[] {
+  const lines = text.split(/\r?\n/).filter((l) => l.trim());
+  const rows: Row[] = [];
+  for (const line of lines.slice(1)) {
+    const parts = line.split(',');
+    if (parts.length < 8) continue;
+    // Las columnas 0..6 son simples; el resto (por si hubiera comas) se reune como imagenes.
+    const [, categoria, subcategoria, producto, marca, antes, ahora] = parts;
+    const imagenes = parts.slice(7).join(',').split(';').map((s) => s.trim()).filter(Boolean);
+    rows.push({ categoria, subcategoria, producto, marca, antes, ahora, imagenes });
+  }
+  return rows;
 }
+
 function slugify(s: string): string {
   return s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
-    .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 150);
-}
-function pick<T>(arr: T[], seed: number): T {
-  return arr[seed % arr.length];
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 150) || 'item';
 }
 
 async function main() {
@@ -140,11 +132,9 @@ async function main() {
   await prisma.businessHour.deleteMany();
   await prisma.storeLocation.deleteMany();
 
-  // ----------------------------- Roles / usuarios -----------------------------
+  // ---- Roles / usuarios ----
   console.log('Seed: roles, permisos y usuarios...');
-  const permissions = await Promise.all(
-    PERMISSIONS.map((p) => prisma.permission.create({ data: p })),
-  );
+  const permissions = await Promise.all(PERMISSIONS.map((p) => prisma.permission.create({ data: p })));
   for (const [roleName, allowed] of Object.entries(ROLE_MATRIX)) {
     const role = await prisma.role.create({ data: { name: roleName } });
     await prisma.rolePermission.createMany({
@@ -158,101 +148,72 @@ async function main() {
     });
   }
 
-  // ------------------------------- Atributos ---------------------------------
+  // ---- Atributo Conectividad (para filtros del catalogo) ----
   console.log('Seed: atributos...');
   const attrConn = await prisma.attribute.create({ data: { name: 'Conectividad' } });
-  const attrSwitch = await prisma.attribute.create({ data: { name: 'Tipo de switch' } });
-  const attrFormat = await prisma.attribute.create({ data: { name: 'Formato' } });
-  const mkVal = (attributeId: string, value: string) => prisma.attributeValue.create({ data: { attributeId, value } });
   const connVals: Record<string, string> = {};
-  for (const v of ['Cableado', 'Inalambrico', 'Bluetooth']) connVals[v] = (await mkVal(attrConn.id, v)).id;
-  const switchVals: Record<string, string> = {};
-  for (const v of ['Blue', 'Red', 'Brown', 'Magnetico']) switchVals[v] = (await mkVal(attrSwitch.id, v)).id;
-  const formatVals: Record<string, string> = {};
-  for (const v of ['Full Size', 'TKL', '60%']) formatVals[v] = (await mkVal(attrFormat.id, v)).id;
-
-  // ------------------------------- Categorias --------------------------------
-  console.log('Seed: categorias...');
-  const parents = ['Perifericos', 'Componentes', 'Accesorios'];
-  const parentRec: Record<string, { id: string }> = {};
-  let order = 1;
-  for (const name of parents) {
-    parentRec[name] = await prisma.category.create({ data: { name, slug: slugify(name), displayOrder: order++ } });
-  }
-  const promo = await prisma.category.create({
-    data: { name: 'Ofertas Villano', slug: 'ofertas-villano', isPromo: true, promoBadgeText: 'OFERTA', displayOrder: order++ },
-  });
-  const subRec: Record<string, { id: string }> = {};
-  let subOrder = 1;
-  for (const [sub, parent] of Object.entries(SUB_PARENT)) {
-    subRec[sub] = await prisma.category.create({
-      data: { name: sub, slug: slugify(sub), parentId: parentRec[parent].id, displayOrder: subOrder++ },
-    });
+  for (const v of ['Inalambrico', 'Cableado', 'Bluetooth']) {
+    connVals[v] = (await prisma.attributeValue.create({ data: { attributeId: attrConn.id, value: v } })).id;
   }
 
-  // ---------------------- Productos desde imagenes reales --------------------
-  console.log('Seed: procesando imagenes reales y creando productos...');
-  let productIdx = 0;
-  const createdProductIds: string[] = [];
-  let folders: { name: string }[] = [];
-  if (!existsSync(SRC_IMAGES)) {
-    console.warn(`Seed: no se encontro la carpeta de imagenes (${SRC_IMAGES}). Se omiten los productos.`);
-    console.warn('Copia las imagenes de catalogo a esa ruta y re-ejecuta el seed.');
+  if (!existsSync(MANIFEST)) {
+    console.warn(`Seed: no se encontro el manifiesto (${MANIFEST}). Se omiten productos.`);
   } else {
-    await rm(OUT_IMAGES, { recursive: true, force: true });
-    await mkdir(OUT_IMAGES, { recursive: true });
-    folders = (await readdir(SRC_IMAGES, { withFileTypes: true })).filter((d) => d.isDirectory());
-  }
+    const rows = parseCsv(await readFile(MANIFEST, 'utf8'));
+    console.log(`Seed: ${rows.length} productos del catalogo real...`);
 
-  for (const folder of folders) {
-    const cfg = FOLDER_CFG[folder.name];
-    if (!cfg) continue;
-    const files = (await readdir(path.join(SRC_IMAGES, folder.name))).filter((f) => /\.png$/i.test(f)).sort();
-
-    // Agrupar por producto (nombre sin sufijo _N).
-    const groups = new Map<string, string[]>();
-    for (const f of files) {
-      const base = f.replace(/\.png$/i, '').replace(/_\d+$/, '');
-      if (!groups.has(base)) groups.set(base, []);
-      groups.get(base)!.push(f);
+    // ---- Categorias (padres + subcategorias del CSV) ----
+    const parentRec: Record<string, { id: string }> = {};
+    let po = 1;
+    for (const name of PARENT_ORDER) {
+      parentRec[name] = await prisma.category.create({ data: { name, slug: slugify(name), displayOrder: po++ } });
+    }
+    const subRec: Record<string, { id: string }> = {};
+    const subOrder: Record<string, number> = {};
+    for (const r of rows) {
+      if (subRec[r.categoria]) continue;
+      const parent = PARENT_OF[r.categoria] ?? 'Accesorios';
+      subOrder[parent] = (subOrder[parent] ?? 0) + 1;
+      subRec[r.categoria] = await prisma.category.create({
+        data: { name: r.categoria, slug: slugify(r.categoria), parentId: parentRec[parent].id, displayOrder: subOrder[parent] },
+      });
     }
 
-    for (const [base, imgs] of groups) {
-      const seed = hash(folder.name + base);
-      const rawName = titleCase(base).slice(0, 70);
-      const name = rawName.length < 3 ? titleCase(folder.name) : rawName;
-      const brand = BRANDS.find((b) => base.replace(/_/g, ' ').startsWith(b));
-      const brandName = brand ? titleCase(brand) : null;
+    // ---- Imagenes: preparar carpeta de salida ----
+    await rm(OUT_IMAGES, { recursive: true, force: true });
+    await mkdir(OUT_IMAGES, { recursive: true });
 
-      const [lo, hi] = cfg.priceRange;
-      const basePrice = Math.round((lo + (seed % (hi - lo))) / 5) * 5; // multiplos de 5
-
-      // Cada 6º producto va a "Ofertas Villano" (para poblar la promo).
-      const inPromo = productIdx % 6 === 0;
-      const categoryId = inPromo ? promo.id : subRec[cfg.sub].id;
+    // ---- Productos ----
+    const createdProductIds: string[] = [];
+    let idx = 0;
+    for (const r of rows) {
+      const ahora = Number(r.ahora);
+      const antesNum = r.antes ? Number(r.antes) : NaN;
+      const originalPrice = Number.isFinite(antesNum) && antesNum > ahora ? antesNum : null;
+      const brand = r.marca && r.marca !== '-' ? r.marca : null;
+      const conn = r.subcategoria === 'Inalambricos' ? 'Inalambrico' : r.subcategoria === 'Cableados' ? 'Cableado' : null;
 
       const product = await prisma.product.create({
         data: {
-          categoryId,
-          name: brandName && !name.startsWith(brandName) ? `${brandName} ${name}` : name,
-          slug: slugify(`${brand ?? cfg.sub}-${base}-${seed % 9999}`),
-          description: `${name}${brandName ? ` de ${brandName}` : ''}. Producto gamer disponible en Villano Gamer Store, Santa Cruz.`,
-          brand: brandName,
-          basePrice,
+          categoryId: subRec[r.categoria].id,
+          name: r.producto,
+          slug: `${slugify(r.producto)}-${idx}`,
+          description: `${r.producto}${brand ? ` — ${brand}` : ''}. Disponible en Villano Gamer Store, Santa Cruz de la Sierra.${originalPrice ? ' ¡En promoción!' : ''}`,
+          brand,
+          basePrice: ahora,
+          originalPrice,
           status: ProductStatus.activo,
         },
       });
       createdProductIds.push(product.id);
-      productIdx++;
 
-      // Imagenes: convertir cada PNG del grupo a WebP.
+      // Imagenes (convertidas a WebP).
       let imgOrder = 0;
-      for (const f of imgs.slice(0, 4)) {
-        const outName = `${slugify(folder.name + '-' + base)}-${imgOrder}.webp`;
-        const buf = await sharp(path.join(SRC_IMAGES, folder.name, f))
-          .resize({ width: 1000, height: 1000, fit: 'inside', withoutEnlargement: true })
-          .webp({ quality: 82 })
-          .toBuffer();
+      for (const rel of r.imagenes.slice(0, 4)) {
+        const abs = path.join(SRC_IMAGES, rel);
+        if (!existsSync(abs)) continue;
+        const outName = `${slugify(r.producto)}-${idx}-${imgOrder}.webp`;
+        const buf = await sharp(abs).resize({ width: 1000, height: 1000, fit: 'inside', withoutEnlargement: true }).webp({ quality: 82 }).toBuffer();
         await writeFile(path.join(OUT_IMAGES, outName), buf);
         await prisma.productImage.create({
           data: { productId: product.id, urlWebp: `/uploads/seed/products/${outName}`, displayOrder: imgOrder, isPrimary: imgOrder === 0 },
@@ -260,48 +221,35 @@ async function main() {
         imgOrder++;
       }
 
-      // Atributos de la variante segun la categoria.
-      const attrIds: string[] = [];
-      if (cfg.conn) attrIds.push(connVals[cfg.conn]);
-      if (cfg.mechanical) attrIds.push(switchVals[pick(['Blue', 'Red', 'Brown'], seed)]);
-      if (cfg.magnetic) attrIds.push(switchVals['Magnetico']);
-      if (cfg.keyboard) attrIds.push(formatVals[pick(['Full Size', 'TKL', '60%'], seed >> 3)]);
-
-      // Stock variado para cubrir todos los estados (agotado / pocas / en stock).
-      const stock = pick([0, 2, 3, 8, 12, 16, 20, 4], seed);
-      const v1 = await prisma.productVariant.create({
-        data: { productId: product.id, sku: `${slugify(base).toUpperCase().slice(0, 20)}-${seed % 999}`, price: basePrice, stockQuantity: stock },
+      // Variante unica (precio actual). Atributo Conectividad si aplica.
+      const variant = await prisma.productVariant.create({
+        data: {
+          productId: product.id,
+          sku: `${slugify(r.producto).toUpperCase().replace(/-/g, '').slice(0, 18)}-${idx}`,
+          price: ahora,
+          stockQuantity: STOCKS[idx % STOCKS.length],
+        },
       });
-      const attrIds1 = [...new Set(attrIds.filter((id): id is string => Boolean(id)))];
-      if (attrIds1.length) {
-        await prisma.variantAttributeValue.createMany({ data: attrIds1.map((id) => ({ variantId: v1.id, attributeValueId: id })) });
+      if (conn) {
+        await prisma.variantAttributeValue.create({ data: { variantId: variant.id, attributeValueId: connVals[conn] } });
       }
-      // Segunda variante para teclados (otro formato) — mas realismo.
-      if (cfg.keyboard) {
-        const fmt2 = pick(['Full Size', 'TKL', '60%'], (seed >> 5) + 1);
-        const v2 = await prisma.productVariant.create({
-          data: { productId: product.id, sku: `${slugify(base).toUpperCase().slice(0, 18)}-${(seed % 999) + 1}`, price: basePrice + 40, stockQuantity: pick([0, 5, 9, 14], seed >> 2) },
-        });
-        const a2raw = [...(cfg.conn ? [connVals[cfg.conn]] : []), formatVals[fmt2], ...(cfg.magnetic ? [switchVals['Magnetico']] : [switchVals[pick(['Blue', 'Red', 'Brown'], seed >> 1)]])];
-        const a2 = [...new Set(a2raw.filter((id): id is string => Boolean(id)))];
-        if (a2.length) await prisma.variantAttributeValue.createMany({ data: a2.map((id) => ({ variantId: v2.id, attributeValueId: id })) });
-      }
+      idx++;
     }
+    console.log(`Seed: ${createdProductIds.length} productos creados con datos e imagenes reales.`);
+
+    // ---- Eventos de metricas ----
+    console.log('Seed: eventos de metricas...');
+    const eventData: { productId: string; eventType: 'view' | 'add_to_cart' | 'whatsapp_click'; sessionId: string }[] = [];
+    createdProductIds.forEach((id, i) => {
+      const views = Math.max(2, 40 - i);
+      for (let v = 0; v < views; v++) eventData.push({ productId: id, eventType: 'view', sessionId: `s-${i}-${v}` });
+      for (let a = 0; a < Math.max(1, 15 - i); a++) eventData.push({ productId: id, eventType: 'add_to_cart', sessionId: `s-${i}-${a}` });
+      for (let w = 0; w < Math.max(0, 7 - i); w++) eventData.push({ productId: id, eventType: 'whatsapp_click', sessionId: `s-${i}-${w}` });
+    });
+    await prisma.productEvent.createMany({ data: eventData });
   }
-  console.log(`Seed: ${createdProductIds.length} productos creados con imagenes reales.`);
 
-  // ------------------------------ Eventos ------------------------------------
-  console.log('Seed: eventos de metricas...');
-  const eventData: { productId: string; eventType: 'view' | 'add_to_cart' | 'whatsapp_click'; sessionId: string }[] = [];
-  createdProductIds.forEach((id, i) => {
-    const views = Math.max(2, 30 - i);
-    for (let v = 0; v < views; v++) eventData.push({ productId: id, eventType: 'view', sessionId: `s-${i}-${v}` });
-    for (let a = 0; a < Math.max(1, 12 - i); a++) eventData.push({ productId: id, eventType: 'add_to_cart', sessionId: `s-${i}-${a}` });
-    for (let w = 0; w < Math.max(0, 6 - i); w++) eventData.push({ productId: id, eventType: 'whatsapp_click', sessionId: `s-${i}-${w}` });
-  });
-  await prisma.productEvent.createMany({ data: eventData });
-
-  // ------------------------------- Tienda ------------------------------------
+  // ---- Tienda ----
   console.log('Seed: horario y ubicacion...');
   await prisma.businessHour.createMany({
     data: [

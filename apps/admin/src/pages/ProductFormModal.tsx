@@ -38,7 +38,7 @@ export function ProductFormModal({ productId, onClose }: { productId: string | n
   const { data: cats } = useAdminCategoryTree();
   const { create, update } = useProductMutations();
 
-  const [form, setForm] = useState({ categoryId: '', name: '', slug: '', description: '', brand: '', basePrice: '', status: 'activo' as 'activo' | 'inactivo' });
+  const [form, setForm] = useState({ categoryId: '', name: '', slug: '', description: '', brand: '', basePrice: '', originalPrice: '', status: 'activo' as 'activo' | 'inactivo' });
   const [slugTouched, setSlugTouched] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -47,7 +47,9 @@ export function ProductFormModal({ productId, onClose }: { productId: string | n
       setForm({
         categoryId: existing.categoryId, name: existing.name, slug: existing.slug,
         description: existing.description ?? '', brand: existing.brand ?? '',
-        basePrice: String(existing.basePrice), status: existing.status,
+        basePrice: String(existing.basePrice),
+        originalPrice: existing.originalPrice != null ? String(existing.originalPrice) : '',
+        status: existing.status,
       });
       setSlugTouched(true);
     }
@@ -61,7 +63,9 @@ export function ProductFormModal({ productId, onClose }: { productId: string | n
     const payload = {
       categoryId: form.categoryId, name: form.name, slug: form.slug,
       description: form.description, brand: form.brand || undefined,
-      basePrice: Number(form.basePrice), status: form.status,
+      basePrice: Number(form.basePrice),
+      originalPrice: form.originalPrice ? Number(form.originalPrice) : null,
+      status: form.status,
     };
     const parsed = createProductSchema.safeParse(payload);
     if (!parsed.success) { setError(parsed.error.errors[0]?.message ?? 'Datos invalidos'); return; }
@@ -96,8 +100,11 @@ export function ProductFormModal({ productId, onClose }: { productId: string | n
             <Field label="Marca">
               <input className="input" value={form.brand} onChange={(e) => set('brand', e.target.value)} />
             </Field>
-            <Field label="Precio base (Bs.)">
+            <Field label="Precio actual (Bs.)">
               <input className="input" type="number" value={form.basePrice} onChange={(e) => set('basePrice', e.target.value)} />
+            </Field>
+            <Field label="Precio antes / oferta (opcional)" hint="Si es mayor al actual, se muestra tachado con el % de descuento.">
+              <input className="input" type="number" value={form.originalPrice} onChange={(e) => set('originalPrice', e.target.value)} placeholder="Sin oferta" />
             </Field>
             <Field label="Estado">
               <select className="input" value={form.status} onChange={(e) => set('status', e.target.value)}>

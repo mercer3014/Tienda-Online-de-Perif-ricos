@@ -121,7 +121,12 @@ export default function ProductsPage() {
                     {p.brand && <span className="ml-1 text-xs text-txt-faint">· {p.brand}</span>}
                   </td>
                   <td className="p-3 text-txt-muted">{p.categoryName}</td>
-                  <td className="p-3 font-semibold text-txt-primary">{formatBs(p.basePrice)}</td>
+                  <td className="p-3 font-semibold text-txt-primary">
+                    {formatBs(p.basePrice)}
+                    {p.originalPrice != null && p.originalPrice > p.basePrice && (
+                      <span className="ml-1 text-xs font-normal text-txt-faint line-through">{formatBs(p.originalPrice)}</span>
+                    )}
+                  </td>
                   <td className="p-3 text-txt-muted">{p.variants.length}</td>
                   <td className="p-3"><StockPill status={p.aggregateStock} /></td>
                   <td className="p-3">

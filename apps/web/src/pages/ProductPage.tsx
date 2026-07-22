@@ -119,10 +119,20 @@ export default function ProductPage() {
         <div>
           {product.brand && <span className="text-sm uppercase tracking-wide text-txt-faint">{product.brand}</span>}
           <h1 className="font-display text-2xl font-bold text-txt-primary sm:text-3xl">{product.name}</h1>
-          <div className="mt-3 flex items-center gap-3">
+          <div className="mt-3 flex flex-wrap items-center gap-3">
             <span className="font-display text-3xl font-bold text-neon-green">
               {formatBs(activeVariant?.price ?? product.fromPrice)}
             </span>
+            {product.originalPrice != null && product.originalPrice > product.fromPrice && (
+              <>
+                <span className="text-lg text-txt-faint line-through">
+                  {formatBs(product.originalPrice)}
+                </span>
+                <span className="rounded-full bg-accent2 px-2 py-0.5 text-xs font-bold text-accent2-on">
+                  -{Math.round((1 - product.fromPrice / product.originalPrice) * 100)}%
+                </span>
+              </>
+            )}
             <StockBadge status={stockStatus} />
           </div>
 
