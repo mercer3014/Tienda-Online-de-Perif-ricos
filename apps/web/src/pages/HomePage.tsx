@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { ArrowRight, ChevronRight, Sparkles } from 'lucide-react';
 import { useProducts, useCategoryTree } from '../hooks/catalog';
 import { ProductCard, ProductCardSkeleton } from '../components/ProductCard';
 import { ErrorState } from '../components/ui';
@@ -23,8 +24,8 @@ export default function HomePage() {
             Perifericos y componentes gamer en Santa Cruz. Arma tu pedido y coordinamos
             pago y entrega por WhatsApp.
           </p>
-          <Link to="/catalogo" className="btn-primary mt-6">
-            Explorar catalogo →
+          <Link to="/catalogo" className="btn-primary mt-6 inline-flex items-center gap-2">
+            Explorar catalogo <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
       </section>
@@ -42,8 +43,8 @@ export default function HomePage() {
               >
                 <span className="text-sm font-semibold text-txt-primary">{c.name}</span>
                 {c.isPromo && c.promoBadgeText && (
-                  <span className="rounded-full bg-neon-green/15 px-2 py-0.5 text-xs font-bold text-neon-green">
-                    {c.promoBadgeText}
+                  <span className="inline-flex items-center gap-1 rounded-full bg-neon-green/15 px-2 py-0.5 text-xs font-bold text-neon-green">
+                    <Sparkles className="h-3 w-3" /> {c.promoBadgeText}
                   </span>
                 )}
                 <span className="text-xs text-txt-faint">{c.productCount ?? 0} productos</span>
@@ -57,8 +58,8 @@ export default function HomePage() {
       <section>
         <div className="mb-4 flex items-center justify-between">
           <h2 className="font-display text-xl uppercase tracking-wide text-txt-primary">Novedades</h2>
-          <Link to="/catalogo" className="text-sm text-neon-purple-bright hover:underline">
-            Ver todo
+          <Link to="/catalogo" className="inline-flex items-center gap-1 text-sm text-neon-purple-bright hover:underline">
+            Ver todo <ChevronRight className="h-4 w-4" />
           </Link>
         </div>
         {isError ? (

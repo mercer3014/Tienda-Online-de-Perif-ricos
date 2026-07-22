@@ -22,7 +22,7 @@ export default function UsersPage() {
   return (
     <div>
       <div className="mb-4 flex items-center justify-between">
-        <h1 className="font-display text-2xl uppercase tracking-wide text-txt-primary">Usuarios</h1>
+        <h1 className="font-display text-2xl tracking-wide text-txt-primary">Usuarios</h1>
         <button className="btn-primary" onClick={() => setEditing(null)}>+ Nuevo usuario</button>
       </div>
 
@@ -39,11 +39,11 @@ export default function UsersPage() {
               </thead>
               <tbody>
                 {users?.map((u) => (
-                  <tr key={u.id} className="border-b border-base-border/50">
+                  <tr key={u.id} className="border-b border-base-border/40 odd:bg-base-void/40 hover:bg-base-border/20">
                     <td className="p-2 font-medium text-txt-primary">{u.name}</td>
                     <td className="p-2 text-txt-muted">{u.email}</td>
                     <td className="p-2 text-txt-muted">{u.role.name}</td>
-                    <td className="p-2"><span className={u.active ? 'text-status-stock' : 'text-txt-faint'}>{u.active ? 'Activo' : 'Inactivo'}</span></td>
+                    <td className="p-2"><span className={u.active ? 'badge badge-success' : 'badge badge-danger'}>{u.active ? 'Activo' : 'Inactivo'}</span></td>
                     <td className="p-2 text-xs text-txt-faint">{formatDateTime(u.createdAt)}</td>
                     <td className="p-2 text-right">
                       <button className="text-neon-purple-bright hover:underline" onClick={() => setEditing(u)}>Editar</button>
@@ -107,7 +107,7 @@ function UserModal({ user, roles, onClose }: { user: AdminUser | null; roles: { 
         </label>
         {err && <p className="rounded bg-status-out/10 px-3 py-2 text-sm text-status-out">{err}</p>}
         <div className="flex justify-end gap-2">
-          <button className="btn-neon border border-base-border text-txt-muted" onClick={onClose}>Cancelar</button>
+          <button className="btn-secondary" onClick={onClose}>Cancelar</button>
           <button className="btn-primary" onClick={submit} disabled={saving}>{saving ? <Spinner className="h-4 w-4" /> : 'Guardar'}</button>
         </div>
       </div>

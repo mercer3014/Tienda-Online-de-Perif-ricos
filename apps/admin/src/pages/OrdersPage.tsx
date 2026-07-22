@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Phone, ChevronLeft, ChevronRight } from 'lucide-react';
 import { OrderStatus, ORDER_STATUS_LABEL, type OrderStatus as OrderStatusT } from '@villano/shared-types';
 import { useOrders, useOrderStatusMutation } from '../hooks/admin';
 import { useAuth } from '../store/auth';
@@ -32,7 +33,7 @@ export default function OrdersPage() {
   return (
     <div>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="font-display text-2xl uppercase tracking-wide text-txt-primary">Pedidos</h1>
+        <h1 className="font-display text-2xl tracking-wide text-txt-primary">Pedidos</h1>
         <select className="input max-w-48" value={filter} onChange={(e) => { setFilter(e.target.value); setPage(1); }}>
           <option value="">Todos los estados</option>
           {STATUSES.map((s) => <option key={s} value={s}>{ORDER_STATUS_LABEL[s]}</option>)}
@@ -52,7 +53,7 @@ export default function OrdersPage() {
                       {o.orderNumber}
                     </button>
                     <span className="text-xs text-txt-faint">{formatDateTime(o.createdAt)}</span>
-                    {o.customerPhone && <span className="text-xs text-txt-muted">📞 {o.customerPhone}</span>}
+                    {o.customerPhone && <span className="inline-flex items-center gap-1 text-xs text-txt-muted"><Phone className="h-3 w-3" /> {o.customerPhone}</span>}
                     <span className="ml-auto font-display font-bold text-neon-green">{formatBs(o.totalAmount)}</span>
                     {can('cambiar_estado_pedido') ? (
                       <select className={`input w-36 py-1 text-sm ${statusColor[o.status]}`} value={o.status} onChange={(e) => setStatus(o.id, e.target.value as OrderStatusT)}>
@@ -78,9 +79,9 @@ export default function OrdersPage() {
             </div>
             {data && data.totalPages > 1 && (
               <div className="mt-4 flex items-center justify-center gap-3 text-sm">
-                <button className="btn-primary py-1.5" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>← Anterior</button>
+                <button className="btn-primary py-1.5 inline-flex items-center gap-1" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}><ChevronLeft className="h-4 w-4" /> Anterior</button>
                 <span className="text-txt-muted">Pagina {data.page} de {data.totalPages}</span>
-                <button className="btn-primary py-1.5" disabled={page >= data.totalPages} onClick={() => setPage((p) => p + 1)}>Siguiente →</button>
+                <button className="btn-primary py-1.5 inline-flex items-center gap-1" disabled={page >= data.totalPages} onClick={() => setPage((p) => p + 1)}>Siguiente <ChevronRight className="h-4 w-4" /></button>
               </div>
             )}
           </>

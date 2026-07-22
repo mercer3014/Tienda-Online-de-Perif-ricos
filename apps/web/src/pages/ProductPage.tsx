@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { computeStockStatus, type VariantDTO } from '@villano/shared-types';
+import { ShoppingBag, Check } from 'lucide-react';
 import { useProduct, trackEvent } from '../hooks/catalog';
 import { useCart } from '../store/cart';
 import { assetUrl } from '../lib/api';
@@ -157,9 +158,9 @@ export default function ProductPage() {
           <button
             onClick={handleAdd}
             disabled={!canAdd}
-            className="btn-accent mt-6 w-full py-3 text-base sm:w-auto sm:px-10"
+            className="btn-accent mt-6 w-full py-3 text-base sm:w-auto sm:px-10 inline-flex items-center justify-center gap-2"
           >
-            {added ? '✓ Agregado' : canAdd ? 'Agregar al carrito' : 'Agotado'}
+            {added ? <><Check className="h-5 w-5" /> Agregado</> : canAdd ? <><ShoppingBag className="h-5 w-5" /> Agregar al carrito</> : 'Agotado'}
           </button>
           {activeVariant && activeVariant.stockQuantity > 0 && activeVariant.stockQuantity < 5 && (
             <p className="mt-2 text-sm text-status-low">

@@ -9,7 +9,7 @@ export default function MetricsPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="font-display text-2xl uppercase tracking-wide text-txt-primary">Metricas</h1>
+      <h1 className="font-display text-2xl tracking-wide text-txt-primary">Metricas</h1>
 
       <div className="grid gap-4 lg:grid-cols-3">
         <RankCard title="Mas vistos" rows={data.mostViewed} unit="vistas" />

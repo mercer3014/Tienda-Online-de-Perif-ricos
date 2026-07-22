@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { LogIn } from 'lucide-react';
 import { loginSchema } from '@villano/shared-types';
 import { useAuth } from '../store/auth';
 import { Spinner } from '../components/ui';
@@ -64,8 +65,8 @@ export default function LoginPage() {
               {error}
             </p>
           )}
-          <button type="submit" disabled={loading} className="btn-primary w-full py-2.5">
-            {loading ? <><Spinner className="h-4 w-4" /> Ingresando…</> : 'Ingresar'}
+          <button type="submit" disabled={loading} className="btn-primary w-full py-2.5 flex items-center justify-center gap-2">
+            {loading ? <><Spinner className="h-4 w-4" /> Ingresando…</> : <><LogIn className="h-4 w-4" /> Ingresar</>}
           </button>
         </form>
       </div>

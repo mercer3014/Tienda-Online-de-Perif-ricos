@@ -18,9 +18,13 @@ build/
 # Prisma
 apps/api/prisma/*.db
 
-# Uploads (imagenes procesadas)
-apps/api/uploads/
+# Uploads en runtime (imagenes subidas desde el admin) — NO versionar,
+# pero SI versionar las imagenes fuente del catalogo (assets del seed).
+apps/api/uploads/*
 !apps/api/uploads/.gitkeep
+!apps/api/uploads/seed
+apps/api/uploads/seed/*
+!apps/api/uploads/seed/catalogo_imagenes
 
 # Logs
 *.log

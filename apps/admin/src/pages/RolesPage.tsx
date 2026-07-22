@@ -41,7 +41,7 @@ export default function RolesPage() {
   return (
     <div>
       <div className="mb-2 flex items-center justify-between">
-        <h1 className="font-display text-2xl uppercase tracking-wide text-txt-primary">Roles y permisos</h1>
+        <h1 className="font-display text-2xl tracking-wide text-txt-primary">Roles y permisos</h1>
         {save.isPending && <Spinner />}
       </div>
       <p className="mb-4 text-sm text-txt-muted">

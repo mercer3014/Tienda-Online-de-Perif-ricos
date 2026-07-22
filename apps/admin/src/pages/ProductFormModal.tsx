@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { Star, X } from 'lucide-react';
 import {
   createProductSchema,
   createVariantSchema,
@@ -112,7 +113,7 @@ export function ProductFormModal({ productId, onClose }: { productId: string | n
           {error && <p className="rounded bg-status-out/10 px-3 py-2 text-sm text-status-out" role="alert">{error}</p>}
 
           <div className="flex justify-end gap-2">
-            <button className="btn-neon border border-base-border text-txt-muted" onClick={onClose}>Cancelar</button>
+            <button className="btn-secondary" onClick={onClose}>Cancelar</button>
             <button className="btn-primary" onClick={submit} disabled={saving}>
               {saving ? <><Spinner className="h-4 w-4" /> Guardando…</> : 'Guardar'}
             </button>
@@ -164,8 +165,8 @@ function ImagesSection({ product }: { product: ProductDetailDTO }) {
             <img src={assetUrl(img.urlWebp)} alt="" className={`h-20 w-20 rounded object-cover ${img.isPrimary ? 'ring-2 ring-neon-green' : ''}`} />
             <div className="absolute inset-x-0 bottom-0 flex justify-between bg-black/70 px-1 text-[10px]">
               {!img.isPrimary && <button onClick={() => setPrimary.mutate(img.id)} className="text-neon-green">Principal</button>}
-              {img.isPrimary && <span className="text-neon-green">★</span>}
-              <button onClick={() => remove.mutate(img.id)} className="text-status-out">✕</button>
+              {img.isPrimary && <Star className="h-3 w-3 text-neon-green fill-neon-green" />}
+              <button onClick={() => remove.mutate(img.id)} className="text-status-out" aria-label="Eliminar imagen"><X className="h-3 w-3" /></button>
             </div>
           </div>
         ))}
@@ -260,7 +261,7 @@ function QuickVariantRow({ sku, label, price, stock, canEdit, canDelete, onSave,
         <input className="input w-20 py-1" type="number" value={s} onChange={(e) => setS(e.target.value)} disabled={!canEdit} />
       </label>
       {canEdit && dirty && <button className="btn-accent px-2 py-1 text-xs" onClick={() => onSave(Number(p), Number(s))}>Guardar</button>}
-      {canDelete && <button className="text-status-out" onClick={onDelete} aria-label="Eliminar variante">✕</button>}
+      {canDelete && <button className="text-status-out" onClick={onDelete} aria-label="Eliminar variante"><X className="h-4 w-4" /></button>}
       {!canEdit && <span className="text-xs text-txt-faint">{formatBs(price)}</span>}
     </div>
   );

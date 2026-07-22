@@ -1,3 +1,4 @@
+import { MapPin, Navigation, MessageSquare } from 'lucide-react';
 import { useStoreStatus } from '../hooks/catalog';
 import { ErrorState, Spinner } from '../components/ui';
 import { usePageMeta } from '../components/Layout';
@@ -40,13 +41,13 @@ export default function LocationPage() {
           </p>
           <div className="mt-4 flex flex-wrap gap-3">
             {loc.googleMapsUrl && (
-              <a href={loc.googleMapsUrl} target="_blank" rel="noopener noreferrer" className="btn-primary">
-                📍 Abrir en Google Maps
+              <a href={loc.googleMapsUrl} target="_blank" rel="noopener noreferrer" className="btn-primary inline-flex items-center gap-2">
+                <MapPin className="h-4 w-4" /> Abrir en Google Maps
               </a>
             )}
             {loc.wazeUrl && (
-              <a href={loc.wazeUrl} target="_blank" rel="noopener noreferrer" className="btn-accent">
-                🚗 Abrir en Waze
+              <a href={loc.wazeUrl} target="_blank" rel="noopener noreferrer" className="btn-accent inline-flex items-center gap-2">
+                <Navigation className="h-4 w-4" /> Abrir en Waze
               </a>
             )}
           </div>
@@ -77,9 +78,9 @@ export default function LocationPage() {
           href={`https://wa.me/${data.whatsappNumber.replace(/\D/g, '')}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="btn-accent mt-3"
+          className="btn-accent mt-3 inline-flex items-center gap-2"
         >
-          💬 Escribir por WhatsApp
+          <MessageSquare className="h-4 w-4" /> Escribir por WhatsApp
         </a>
       </section>
     </div>

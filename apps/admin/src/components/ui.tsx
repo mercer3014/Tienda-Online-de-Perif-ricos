@@ -1,5 +1,6 @@
 import clsx from 'clsx';
 import type { ReactNode } from 'react';
+import { AlertTriangle, X } from 'lucide-react';
 import { useToast } from '../lib/toast';
 
 export function Spinner({ className }: { className?: string }) {
@@ -19,7 +20,9 @@ export function Skeleton({ className }: { className?: string }) {
 export function ErrorState({ message, onRetry }: { message: string; onRetry?: () => void }) {
   return (
     <div className="card mx-auto max-w-md p-8 text-center" role="alert">
-      <div className="mb-2 text-3xl">⚠️</div>
+      <div className="mb-2 flex justify-center text-status-out">
+        <AlertTriangle className="h-10 w-10" />
+      </div>
       <p className="mb-4 text-txt-muted">{message}</p>
       {onRetry && <button className="btn-primary" onClick={onRetry}>Reintentar</button>}
     </div>
@@ -54,7 +57,9 @@ export function Modal({ title, onClose, children, wide }: { title: string; onClo
       >
         <div className="mb-4 flex items-center justify-between">
           <h2 className="font-display text-lg uppercase tracking-wide text-neon-purple-bright">{title}</h2>
-          <button onClick={onClose} className="rounded p-1 text-txt-muted hover:text-neon-purple" aria-label="Cerrar">✕</button>
+          <button onClick={onClose} className="rounded p-1 text-txt-muted hover:text-neon-purple" aria-label="Cerrar">
+            <X className="h-5 w-5" />
+          </button>
         </div>
         {children}
       </div>

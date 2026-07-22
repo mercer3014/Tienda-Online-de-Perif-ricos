@@ -2,6 +2,9 @@ packages:
   - "apps/*"
   - "packages/*"
 
+allowBuilds:
+  '@prisma/engines': set this to true or false
+
 # Dependencias autorizadas a ejecutar scripts de instalacion (binarios nativos).
 onlyBuiltDependencies:
   - "@prisma/client"

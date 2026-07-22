@@ -39,7 +39,8 @@ const idParam = z.object({ id: uuidSchema });
 const listQuery = z.object({
   search: z.string().trim().max(120).optional(),
   page: z.coerce.number().int().min(1).default(1),
-  pageSize: z.coerce.number().int().min(1).max(100).default(20),
+  // El admin puede traer el catalogo completo (tienda fisica) para filtrar/ordenar en cliente.
+  pageSize: z.coerce.number().int().min(1).max(500).default(20),
 });
 
 const upload = multer({

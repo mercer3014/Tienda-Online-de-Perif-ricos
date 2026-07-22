@@ -1,10 +1,12 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import clsx from 'clsx';
+import { ShoppingBag, MapPin, Star, Search, Menu, X } from 'lucide-react';
 import { useCart } from '../store/cart';
 import { useCategoryTree, useStoreStatus } from '../hooks/catalog';
 import { CartDrawer } from './CartDrawer';
 import { Spinner } from './ui';
+import { ThemeToggle } from './ThemeToggle';
 
 function StoreStatusPill() {
   const { data, isLoading } = useStoreStatus();
@@ -50,9 +52,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
             aria-label="Abrir menu"
             aria-expanded={menuOpen}
           >
-            <span className="block h-0.5 w-6 bg-current" />
-            <span className="mt-1.5 block h-0.5 w-6 bg-current" />
-            <span className="mt-1.5 block h-0.5 w-6 bg-current" />
+            {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
 
           <Link to="/" className="shrink-0 font-display text-lg font-bold tracking-wider text-neon-purple-bright sm:text-xl">
@@ -60,26 +60,30 @@ export function Layout({ children }: { children: React.ReactNode }) {
           </Link>
 
           <form onSubmit={onSearch} className="ml-auto hidden flex-1 max-w-md sm:block">
-            <input
-              type="search"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar mouse, teclados, componentes…"
-              className="w-full rounded-md border border-base-border bg-base-void px-3 py-2 text-sm text-txt-primary placeholder:text-txt-faint focus:border-neon-purple"
-              aria-label="Buscar productos"
-            />
+            <div className="relative">
+              <input
+                type="search"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Buscar mouse, teclados, componentes…"
+                className="w-full rounded-md border border-base-border bg-base-void pl-9 pr-3 py-2 text-sm text-txt-primary placeholder:text-txt-faint focus:border-neon-purple"
+                aria-label="Buscar productos"
+              />
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-txt-faint" />
+            </div>
           </form>
 
           <div className="ml-auto flex items-center gap-3 sm:ml-2">
             <div className="hidden md:block">
               <StoreStatusPill />
             </div>
+            <ThemeToggle />
             <button
               onClick={openCart}
-              className="relative rounded-md border border-neon-purple/50 px-3 py-2 text-neon-purple-bright hover:bg-neon-purple/15 hover:shadow-neon-purple"
+              className="relative inline-flex items-center gap-1.5 rounded-md border border-neon-purple/50 px-3 py-2 text-neon-purple-bright hover:bg-neon-purple/15 hover:shadow-neon-purple transition-all"
               aria-label={`Carrito, ${count} articulos`}
             >
-              🛒
+              <ShoppingBag className="h-4 w-4" />
               {count > 0 && (
                 <span className="absolute -right-2 -top-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-neon-green px-1 text-xs font-bold text-base-black">
                   {count}
@@ -91,14 +95,17 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
         {/* Buscador mobile */}
         <form onSubmit={onSearch} className="px-4 pb-3 sm:hidden">
-          <input
-            type="search"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Buscar…"
-            className="w-full rounded-md border border-base-border bg-base-void px-3 py-2 text-sm"
-            aria-label="Buscar productos"
-          />
+          <div className="relative">
+            <input
+              type="search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Buscar…"
+              className="w-full rounded-md border border-base-border bg-base-void pl-9 pr-3 py-2 text-sm text-txt-primary placeholder:text-txt-faint focus:border-neon-purple"
+              aria-label="Buscar productos"
+            />
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-txt-faint" />
+          </div>
         </form>
 
         {/* Nav categorias desktop */}
@@ -112,14 +119,14 @@ export function Layout({ children }: { children: React.ReactNode }) {
               <NavLink
                 key={c.id}
                 to={`/catalogo?categoria=${c.slug}`}
-                className={({ isActive }) => clsx('rounded px-3 py-1.5 font-display uppercase tracking-wide', isActive ? 'text-neon-green' : 'text-txt-muted hover:text-neon-purple-bright')}
+                className={({ isActive }) => clsx('inline-flex items-center gap-1 rounded px-3 py-1.5 font-display uppercase tracking-wide', isActive ? 'text-neon-green' : 'text-txt-muted hover:text-neon-purple-bright')}
               >
                 {c.name}
-                {c.isPromo && <span className="ml-1 text-neon-green">★</span>}
+                {c.isPromo && <Star className="h-3.5 w-3.5 text-neon-green fill-neon-green" />}
               </NavLink>
             ))}
-            <Link to="/ubicacion" className="ml-auto rounded px-3 py-1.5 font-display uppercase tracking-wide text-txt-muted hover:text-neon-purple-bright">
-              📍 Ubicacion
+            <Link to="/ubicacion" className="ml-auto inline-flex items-center gap-1.5 rounded px-3 py-1.5 font-display uppercase tracking-wide text-txt-muted hover:text-neon-purple-bright">
+              <MapPin className="h-4 w-4 text-neon-purple-bright" /> Ubicacion
             </Link>
           </div>
         </nav>
@@ -133,10 +140,16 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <MobileLink to="/catalogo" onClick={() => setMenuOpen(false)}>Todo el catalogo</MobileLink>
             {categories?.map((c) => (
               <MobileLink key={c.id} to={`/catalogo?categoria=${c.slug}`} onClick={() => setMenuOpen(false)}>
-                {c.name} {c.isPromo && <span className="text-neon-green">★</span>}
+                <span className="inline-flex items-center gap-1">
+                  {c.name} {c.isPromo && <Star className="h-3.5 w-3.5 text-neon-green fill-neon-green" />}
+                </span>
               </MobileLink>
             ))}
-            <MobileLink to="/ubicacion" onClick={() => setMenuOpen(false)}>📍 Ubicacion y horarios</MobileLink>
+            <MobileLink to="/ubicacion" onClick={() => setMenuOpen(false)}>
+              <span className="inline-flex items-center gap-1.5">
+                <MapPin className="h-4 w-4 text-neon-purple-bright" /> Ubicacion y horarios
+              </span>
+            </MobileLink>
           </div>
         </div>
       )}

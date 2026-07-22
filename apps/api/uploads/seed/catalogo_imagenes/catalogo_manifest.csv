@@ -1,0 +1,58 @@
+pagina_pdf,categoria,subcategoria,producto,marca,precio_antes_bs,precio_ahora_bs,imagenes
+2,Teclados Mecanicos,Inalambricos,Attack Shark X98,Attack Shark,750,690,teclados_mecanicos_inalambricos/attack_shark_x98_1.png
+2,Teclados Mecanicos,Inalambricos,Attack Shark K86,Attack Shark,700,650,teclados_mecanicos_inalambricos/attack_shark_k86_1.png;teclados_mecanicos_inalambricos/attack_shark_k86_2.png
+2,Teclados Mecanicos,Inalambricos,Ajazz K820 Pro,Ajazz,750,690,teclados_mecanicos_inalambricos/ajazz_k820_pro_1.png
+2,Teclados Mecanicos,Inalambricos,Ajazz AKL 680,Ajazz,450,350,teclados_mecanicos_inalambricos/ajazz_akl_680_1.png
+3,Teclados Mecanicos,Cableados,E Yooso Z11T,E Yooso,300,250,teclados_mecanicos_cableados/e_yooso_z11t_1.png
+3,Teclados Mecanicos,Cableados,E Yooso K620,E Yooso,450,350,teclados_mecanicos_cableados/e_yooso_k620_1.png
+3,Teclados Mecanicos,Cableados,E Yooso K630,E Yooso,450,350,teclados_mecanicos_cableados/e_yooso_k630_1.png
+4,Teclados Magneticos,Inalambricos,Attack Shark X82 Pro HE,Attack Shark,850,750,teclados_magneticos_inalambricos_y_cableados/attack_shark_x82_pro_he_1.png
+4,Teclados Magneticos,Inalambricos,Irok Mars 68 Pro,Irok,650,550,teclados_magneticos_inalambricos_y_cableados/irok_mars_68_pro_1.png;teclados_magneticos_inalambricos_y_cableados/irok_mars_68_pro_2.png
+4,Teclados Magneticos,Inalambricos,Irok MG 68 Max,Irok,950,850,teclados_magneticos_inalambricos_y_cableados/irok_mg_68_max_1.png;teclados_magneticos_inalambricos_y_cableados/irok_mg_68_max_2.png
+4,Teclados Magneticos,Cableados,Irok MG 75 Pro,Irok,1050,950,teclados_magneticos_inalambricos_y_cableados/irok_mg_75_pro_1.png
+5,Teclados Magneticos,Inalambricos,Irok Mars Mercury 68,Irok,650,600,teclados_magneticos_inalambricos_2/irok_mars_mercury_68_1.png;teclados_magneticos_inalambricos_2/irok_mars_mercury_68_2.png
+5,Teclados Magneticos,Cableados,Irok Mars 68 Wired,Irok,590,500,teclados_magneticos_inalambricos_2/irok_mars_68_wired_1.png
+5,Teclados Magneticos,Inalambricos,Attack Shark R85,Attack Shark,750,650,teclados_magneticos_inalambricos_2/attack_shark_r85_1.png
+5,Teclados Magneticos,Inalambricos,Ajazz AK820 Max,Ajazz,750,700,teclados_magneticos_inalambricos_2/ajazz_ak820_max_1.png
+6,Mouse Gamer,Inalambricos,Gravastar M1 Pro,Gravastar,1050,1000,mouses_inalambricos_1/gravastar_m1_pro_1.png;mouses_inalambricos_1/gravastar_m1_pro_2.png;mouses_inalambricos_1/gravastar_m1_pro_3.png
+6,Mouse Gamer,Inalambricos,Gravastar M2,Gravastar,950,900,mouses_inalambricos_1/gravastar_m2_1.png;mouses_inalambricos_1/gravastar_m2_2.png
+6,Mouse Gamer,Inalambricos,Attack Shark R5 Ultra,Attack Shark,850,750,mouses_inalambricos_1/attack_shark_r5_ultra_1.png
+6,Mouse Gamer,Inalambricos,Attack Shark R11 Ultra,Attack Shark,900,800,mouses_inalambricos_1/attack_shark_r11_ultra_1.png
+7,Mouse Gamer,Inalambricos,Attack Shark X11,Attack Shark,350,320,mouses_inalambricos_2/attack_shark_x11_1.png
+7,Mouse Gamer,Inalambricos,Attack Shark V6,Attack Shark,400,350,mouses_inalambricos_2/attack_shark_v6_1.png
+7,Mouse Gamer,Inalambricos,Attack Shark X3,Attack Shark,500,400,mouses_inalambricos_2/attack_shark_x3_1.png
+7,Mouse Gamer,Inalambricos,Mchose K7 Ultra,Mchose,1100,980,mouses_inalambricos_2/mchose_k7_ultra_1.png
+8,Mouse Gamer,Inalambricos,Scyrox V6,Scyrox,870,820,mouses_inalambricos_3/scyrox_v6_1.png;mouses_inalambricos_3/scyrox_v6_2.png
+8,Mouse Gamer,Inalambricos,ATK A9 Plus,ATK,580,530,mouses_inalambricos_3/atk_a9_plus_1.png
+8,Mouse Gamer,Inalambricos,ATK VXE R1 Pro Max,ATK,650,600,mouses_inalambricos_3/atk_vxe_r1_pro_max_1.png;mouses_inalambricos_3/atk_vxe_r1_pro_max_2.png
+8,Mouse Gamer,Inalambricos,Irok HE6 Ultra,Irok,800,700,mouses_inalambricos_3/irok_he6_ultra_1.png
+9,Mouse Gamer,Inalambricos,Ajazz AJ159 Pro,Ajazz,700,650,mouses_inalambricos_4/ajazz_aj159_pro_1.png
+9,Mouse Gamer,Inalambricos,Razer Orochi V2X,Razer,570,520,mouses_inalambricos_4/razer_orochi_v2x_1.png;mouses_inalambricos_4/razer_orochi_v2x_2.png
+9,Mouse Gamer,Inalambricos,Razer DeathAdder V2X,Razer,550,500,mouses_inalambricos_4/razer_deathadder_v2x_1.png
+9,Mouse Gamer,Inalambricos,Logitech G304,Logitech,450,400,mouses_inalambricos_4/logitech_g304_1.png
+10,Mouse Gamer,Inalambricos,Logitech M171,Logitech,120,100,mouses_5_y_cableados_1/logitech_m171_1.png
+10,Mouse Gamer,Inalambricos,Ajazz AJ039,Ajazz,250,230,mouses_5_y_cableados_1/ajazz_aj039_1.png
+10,Mouse Gamer,Cableados,Logitech G502,Logitech,550,500,mouses_5_y_cableados_1/logitech_g502_1.png
+10,Mouse Gamer,Cableados,Logitech G102,Logitech,300,240,mouses_5_y_cableados_1/logitech_g102_1.png
+11,Mouse Gamer,Cableados,Razer DeathAdder Essencial,Razer,340,300,mouses_cableados_2/razer_deathadder_essencial_1.png
+11,Mouse Gamer,Cableados,Razer Cobra,Razer,550,500,mouses_cableados_2/razer_cobra_1.png
+11,Mouse Gamer,Cableados,Onikuma CW902,Onikuma,120,75,mouses_cableados_2/onikuma_cw902_1.png;mouses_cableados_2/onikuma_cw902_2.png
+12,Audifonos,Inalambricos,VGN VXE Siren V1,VGN VXE,450,350,audifonos_1/vgn_vxe_siren_v1_1.png
+12,Audifonos,Inalambricos,Mchose V9 Pro,Mchose,700,680,audifonos_1/mchose_v9_pro_1.png
+12,Audifonos,Cableados,Razer Kraken X,Razer,550,500,audifonos_1/razer_kraken_x_1.png
+13,Audifonos,Cableados,Razer BlackShark V2X,Razer,850,800,audifonos_2_y_auriculares/razer_blackshark_v2x_1.png
+13,Audifonos,Cableados,Onikuma X15 Pro,Onikuma,250,180,audifonos_2_y_auriculares/onikuma_x15_pro_1.png
+13,Auriculares,Inalambricos,Gravastar Sirius,Gravastar,1150,1000,audifonos_2_y_auriculares/gravastar_sirius_1.png;audifonos_2_y_auriculares/gravastar_sirius_2.png
+14,Microfonos,-,M12 Condensed,-,280,230,microfonos_y_mando/m12_condensed_1.png
+14,Microfonos,-,WM13 Condensed,-,500,400,microfonos_y_mando/wm13_condensed_1.png
+14,Mando GameSir,-,Tarantula T3 Pro,GameSir,950,850,microfonos_y_mando/tarantula_t3_pro_1.png
+15,Cargador,-,Gravastar Alpha Gan,Gravastar,550,500,cargador_glasspad_brazo/gravastar_alpha_gan_1.png;cargador_glasspad_brazo/gravastar_alpha_gan_2.png
+15,Glass Pad,-,Attack Shark CM05,Attack Shark,580,530,cargador_glasspad_brazo/attack_shark_cm05_1.png;cargador_glasspad_brazo/attack_shark_cm05_2.png
+15,Brazo para Monitor,-,NB F80,NB,280,240,cargador_glasspad_brazo/nb_f80_1.png
+16,Cable Enrollado,-,Cable Enrollado,-,120,100,cable_swiches_cooler_ventiladores/cable_enrollado_1.png;cable_swiches_cooler_ventiladores/cable_enrollado_2.png
+16,Switches,-,Switches,-,7,5,cable_swiches_cooler_ventiladores/switches_1.png
+16,Cooler,-,CPU Cooler,-,350,250,cable_swiches_cooler_ventiladores/cpu_cooler_1.png
+16,Ventiladores,-,Ventiladores,-,90,70,cable_swiches_cooler_ventiladores/ventiladores_1.png;cable_swiches_cooler_ventiladores/ventiladores_2.png
+17,Combo Ventiladores,-,Controlador RGB (combo 4 ventiladores + 1 controlador = 380 Bs),-,,380,combo_y_gabinetes/controlador_rgb_combo_4_ventiladores_+_1_controlador_=_380_bs_1.png
+17,Gabinetes,ATX,Gabinete Tipo Pecera ATX (sin ventiladores),-,700,600,combo_y_gabinetes/gabinete_tipo_pecera_atx_sin_ventiladores_1.png;combo_y_gabinetes/gabinete_tipo_pecera_atx_sin_ventiladores_2.png
+17,Gabinetes,M-ATX,Gabinete Tipo Pecera M-ATX (sin ventiladores),-,600,500,combo_y_gabinetes/gabinete_tipo_pecera_m-atx_sin_ventiladores_1.png;combo_y_gabinetes/gabinete_tipo_pecera_m-atx_sin_ventiladores_2.png

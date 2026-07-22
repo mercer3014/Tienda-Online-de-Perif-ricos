@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Check, X } from 'lucide-react';
 import type { CategoryNode } from '@villano/shared-types';
 import { createCategorySchema } from '@villano/shared-types';
 import { useAdminCategoryTree, useCategoryMutations } from '../hooks/admin';
@@ -40,7 +41,7 @@ export default function CategoriesPage() {
   return (
     <div className="grid gap-6 lg:grid-cols-3">
       <div className="lg:col-span-2">
-        <h1 className="mb-4 font-display text-2xl uppercase tracking-wide text-txt-primary">Categorias</h1>
+        <h1 className="mb-4 font-display text-2xl tracking-wide text-txt-primary">Categorias</h1>
         <div className="card p-4">
           {tree.length === 0 ? <p className="text-txt-muted">No hay categorias.</p> : (
             <ul className="space-y-1">{tree.map((n) => <CategoryRow key={n.id} node={n} allNodes={tree} depth={0} />)}</ul>
@@ -117,8 +118,8 @@ function CategoryRow({ node, allNodes, depth }: { node: CategoryNode; allNodes: 
         {editing ? (
           <>
             <input className="input w-48 py-1" value={name} onChange={(e) => setName(e.target.value)} autoFocus />
-            <button className="text-neon-green" onClick={rename}>✓</button>
-            <button className="text-txt-faint" onClick={() => { setEditing(false); setName(node.name); }}>✕</button>
+            <button className="text-neon-green" onClick={rename} aria-label="Guardar"><Check className="h-4 w-4" /></button>
+            <button className="text-txt-faint" onClick={() => { setEditing(false); setName(node.name); }} aria-label="Cancelar"><X className="h-4 w-4" /></button>
           </>
         ) : (
           <>

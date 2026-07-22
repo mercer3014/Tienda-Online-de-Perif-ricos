@@ -2,7 +2,8 @@
 import { PrismaClient, ProductStatus } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import sharp from 'sharp';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, readdir, writeFile, rm } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -11,10 +12,11 @@ const SALT_ROUNDS = Number(process.env.BCRYPT_SALT_ROUNDS ?? 12);
 const DEFAULT_PASSWORD = 'Villano#2025';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const UPLOAD_DIR = path.resolve(__dirname, '../uploads/seed');
+const SRC_IMAGES = path.resolve(__dirname, '../uploads/seed/catalogo_imagenes');
+const OUT_IMAGES = path.resolve(__dirname, '../uploads/seed/products');
 
 // -------------------------------------------------------------------------
-// Catalogo de permisos (fuente unica; coincide con PermissionKey compartido).
+// Permisos, roles y usuarios (sin cambios).
 // -------------------------------------------------------------------------
 const PERMISSIONS: { key: string; description: string }[] = [
   { key: 'ver_dashboard', description: 'Ver el panel principal y resumen' },
@@ -35,50 +37,23 @@ const PERMISSIONS: { key: string; description: string }[] = [
   { key: 'gestionar_usuarios', description: 'Alta/baja de usuarios del panel' },
   { key: 'gestionar_roles', description: 'Configurar la matriz de permisos por rol' },
 ];
-
 const ALL_KEYS = PERMISSIONS.map((p) => p.key);
-
-// Matriz base rol -> permisos permitidos.
 const ROLE_MATRIX: Record<string, string[]> = {
   'Super Admin': ALL_KEYS,
   'Administrador de Tienda': [
-    'ver_dashboard',
-    'crear_producto',
-    'editar_producto',
-    'eliminar_producto',
-    'editar_precio',
-    'editar_stock',
-    'gestionar_imagenes',
-    'crear_categoria',
-    'editar_categoria',
-    'modificar_categoria',
-    'eliminar_categoria',
-    'ver_pedidos',
-    'cambiar_estado_pedido',
-    'ver_metricas',
-    'ver_auditoria',
+    'ver_dashboard', 'crear_producto', 'editar_producto', 'eliminar_producto', 'editar_precio',
+    'editar_stock', 'gestionar_imagenes', 'crear_categoria', 'editar_categoria', 'modificar_categoria',
+    'eliminar_categoria', 'ver_pedidos', 'cambiar_estado_pedido', 'ver_metricas', 'ver_auditoria',
   ],
   'Encargado de Stock': [
-    'ver_dashboard',
-    'crear_producto',
-    'editar_producto',
-    'editar_precio',
-    'editar_stock',
-    'gestionar_imagenes',
-    'ver_pedidos',
-    'ver_metricas',
+    'ver_dashboard', 'crear_producto', 'editar_producto', 'editar_precio', 'editar_stock',
+    'gestionar_imagenes', 'ver_pedidos', 'ver_metricas',
   ],
   'Personal de Marketing': [
-    'ver_dashboard',
-    'crear_categoria',
-    'editar_categoria',
-    'modificar_categoria',
-    'ver_pedidos',
-    'ver_metricas',
+    'ver_dashboard', 'crear_categoria', 'editar_categoria', 'modificar_categoria', 'ver_pedidos', 'ver_metricas',
   ],
 };
-
-const USERS: { name: string; email: string; role: string }[] = [
+const USERS = [
   { name: 'Super Admin', email: 'superadmin@villano.bo', role: 'Super Admin' },
   { name: 'Ana Villano', email: 'admin@villano.bo', role: 'Administrador de Tienda' },
   { name: 'Marco Stock', email: 'stock@villano.bo', role: 'Encargado de Stock' },
@@ -86,39 +61,68 @@ const USERS: { name: string; email: string; role: string }[] = [
 ];
 
 // -------------------------------------------------------------------------
-// Generacion de imagenes placeholder WebP (para que el catalogo tenga visual).
+// Mapeo de carpeta de imagenes -> categoria + atributos.
 // -------------------------------------------------------------------------
-async function makePlaceholder(fileName: string, label: string, hue: 'purple' | 'green') {
-  const bg = '#0a0c14';
-  const accent = hue === 'purple' ? '#a855f7' : '#39ff14';
-  const svg = `
-    <svg width="800" height="800" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <radialGradient id="g" cx="30%" cy="20%" r="90%">
-          <stop offset="0%" stop-color="${accent}" stop-opacity="0.28"/>
-          <stop offset="60%" stop-color="${bg}" stop-opacity="1"/>
-        </radialGradient>
-      </defs>
-      <rect width="800" height="800" fill="${bg}"/>
-      <rect width="800" height="800" fill="url(#g)"/>
-      <rect x="20" y="20" width="760" height="760" fill="none" stroke="${accent}" stroke-opacity="0.5" stroke-width="2"/>
-      <text x="400" y="410" font-family="Segoe UI, sans-serif" font-size="52" font-weight="700"
-        fill="${accent}" text-anchor="middle">${label}</text>
-      <text x="400" y="470" font-family="Segoe UI, sans-serif" font-size="24"
-        fill="#9aa2bd" text-anchor="middle">VILLANO GAMER STORE</text>
-    </svg>`;
-  const buf = await sharp(Buffer.from(svg)).webp({ quality: 82 }).toBuffer();
-  await writeFile(path.join(UPLOAD_DIR, fileName), buf);
-  return `/uploads/seed/${fileName}`;
+type Conn = 'Cableado' | 'Inalambrico' | 'Bluetooth' | null;
+interface FolderCfg {
+  sub: string; // subcategoria
+  conn: Conn;
+  mechanical?: boolean;
+  magnetic?: boolean;
+  keyboard?: boolean;
+  priceRange: [number, number];
 }
+const FOLDER_CFG: Record<string, FolderCfg> = {
+  audifonos_1: { sub: 'Audifonos', conn: 'Inalambrico', priceRange: [180, 520] },
+  audifonos_2_y_auriculares: { sub: 'Audifonos', conn: 'Cableado', priceRange: [150, 480] },
+  cable_swiches_cooler_ventiladores: { sub: 'Coolers y Ventiladores', conn: null, priceRange: [60, 280] },
+  cargador_glasspad_brazo: { sub: 'Cargadores y Soportes', conn: null, priceRange: [90, 360] },
+  combo_y_gabinetes: { sub: 'Gabinetes', conn: null, priceRange: [220, 620] },
+  microfonos_y_mando: { sub: 'Microfonos y Mandos', conn: 'Cableado', priceRange: [150, 450] },
+  mouses_5_y_cableados_1: { sub: 'Mouse Gamer', conn: 'Cableado', priceRange: [90, 360] },
+  mouses_cableados_2: { sub: 'Mouse Gamer', conn: 'Cableado', priceRange: [110, 380] },
+  mouses_inalambricos_1: { sub: 'Mouse Gamer', conn: 'Inalambrico', priceRange: [160, 520] },
+  mouses_inalambricos_2: { sub: 'Mouse Gamer', conn: 'Inalambrico', priceRange: [180, 560] },
+  mouses_inalambricos_3: { sub: 'Mouse Gamer', conn: 'Inalambrico', priceRange: [200, 620] },
+  mouses_inalambricos_4: { sub: 'Mouse Gamer', conn: 'Inalambrico', priceRange: [200, 640] },
+  teclados_magneticos_inalambricos_2: { sub: 'Teclados', conn: 'Inalambrico', magnetic: true, keyboard: true, priceRange: [320, 780] },
+  teclados_magneticos_inalambricos_y_cableados: { sub: 'Teclados', conn: 'Cableado', magnetic: true, keyboard: true, priceRange: [300, 760] },
+  teclados_mecanicos_cableados: { sub: 'Teclados', conn: 'Cableado', mechanical: true, keyboard: true, priceRange: [260, 640] },
+  teclados_mecanicos_inalambricos: { sub: 'Teclados', conn: 'Inalambrico', mechanical: true, keyboard: true, priceRange: [320, 720] },
+};
+// Subcategoria -> categoria padre.
+const SUB_PARENT: Record<string, string> = {
+  'Mouse Gamer': 'Perifericos',
+  Teclados: 'Perifericos',
+  Audifonos: 'Perifericos',
+  'Microfonos y Mandos': 'Perifericos',
+  'Coolers y Ventiladores': 'Componentes',
+  Gabinetes: 'Componentes',
+  'Cargadores y Soportes': 'Accesorios',
+};
 
-function esc(s: string) {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+const BRANDS = ['attack shark', 'logitech', 'razer', 'gravastar', 'mchose', 'onikuma', 'ajazz', 'atk', 'irok', 'scyrox', 'vgn', 'vxe', 'nb', 'gabinete', 'cpu', 'attack'];
+
+// hash deterministico simple.
+function hash(s: string): number {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+  return h;
+}
+function titleCase(s: string): string {
+  return s.replace(/[_+=]+/g, ' ').replace(/\s+/g, ' ').trim()
+    .split(' ').map((w) => (w ? w[0].toUpperCase() + w.slice(1) : w)).join(' ');
+}
+function slugify(s: string): string {
+  return s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 150);
+}
+function pick<T>(arr: T[], seed: number): T {
+  return arr[seed % arr.length];
 }
 
 async function main() {
   console.log('Seed: limpiando datos previos...');
-  // Orden respetando FKs.
   await prisma.orderItem.deleteMany();
   await prisma.order.deleteMany();
   await prisma.productEvent.deleteMany();
@@ -136,288 +140,184 @@ async function main() {
   await prisma.businessHour.deleteMany();
   await prisma.storeLocation.deleteMany();
 
-  await mkdir(UPLOAD_DIR, { recursive: true });
-
-  // ----------------------------- Roles & permisos -----------------------------
+  // ----------------------------- Roles / usuarios -----------------------------
   console.log('Seed: roles, permisos y usuarios...');
   const permissions = await Promise.all(
-    PERMISSIONS.map((p) =>
-      prisma.permission.create({ data: { key: p.key, description: p.description } }),
-    ),
+    PERMISSIONS.map((p) => prisma.permission.create({ data: p })),
   );
-  const permByKey = new Map(permissions.map((p) => [p.key, p]));
-
-  for (const [roleName, allowedKeys] of Object.entries(ROLE_MATRIX)) {
+  for (const [roleName, allowed] of Object.entries(ROLE_MATRIX)) {
     const role = await prisma.role.create({ data: { name: roleName } });
     await prisma.rolePermission.createMany({
-      data: permissions.map((perm) => ({
-        roleId: role.id,
-        permissionId: perm.id,
-        allowed: allowedKeys.includes(perm.key),
-      })),
+      data: permissions.map((perm) => ({ roleId: role.id, permissionId: perm.id, allowed: allowed.includes(perm.key) })),
     });
   }
-
-  const roleByName = new Map(
-    (await prisma.role.findMany()).map((r) => [r.name, r]),
-  );
-
+  const roleByName = new Map((await prisma.role.findMany()).map((r) => [r.name, r]));
   for (const u of USERS) {
-    const role = roleByName.get(u.role)!;
     await prisma.user.create({
-      data: {
-        name: u.name,
-        email: u.email,
-        passwordHash: await bcrypt.hash(DEFAULT_PASSWORD, SALT_ROUNDS),
-        roleId: role.id,
-        active: true,
-      },
+      data: { name: u.name, email: u.email, passwordHash: await bcrypt.hash(DEFAULT_PASSWORD, SALT_ROUNDS), roleId: roleByName.get(u.role)!.id, active: true },
     });
   }
 
   // ------------------------------- Atributos ---------------------------------
   console.log('Seed: atributos...');
-  const attrSwitch = await prisma.attribute.create({ data: { name: 'Tipo de switch' } });
   const attrConn = await prisma.attribute.create({ data: { name: 'Conectividad' } });
+  const attrSwitch = await prisma.attribute.create({ data: { name: 'Tipo de switch' } });
   const attrFormat = await prisma.attribute.create({ data: { name: 'Formato' } });
-
-  const mkVal = (attributeId: string, value: string) =>
-    prisma.attributeValue.create({ data: { attributeId, value } });
-
-  const swBlue = await mkVal(attrSwitch.id, 'Blue');
-  const swRed = await mkVal(attrSwitch.id, 'Red');
-  const swBrown = await mkVal(attrSwitch.id, 'Brown');
-  const connWired = await mkVal(attrConn.id, 'Cableado');
-  const connWireless = await mkVal(attrConn.id, 'Inalambrico');
-  const connBt = await mkVal(attrConn.id, 'Bluetooth');
-  const fmtFull = await mkVal(attrFormat.id, 'Full Size');
-  const fmtTkl = await mkVal(attrFormat.id, 'TKL');
-  const fmt60 = await mkVal(attrFormat.id, '60%');
+  const mkVal = (attributeId: string, value: string) => prisma.attributeValue.create({ data: { attributeId, value } });
+  const connVals: Record<string, string> = {};
+  for (const v of ['Cableado', 'Inalambrico', 'Bluetooth']) connVals[v] = (await mkVal(attrConn.id, v)).id;
+  const switchVals: Record<string, string> = {};
+  for (const v of ['Blue', 'Red', 'Brown', 'Magnetico']) switchVals[v] = (await mkVal(attrSwitch.id, v)).id;
+  const formatVals: Record<string, string> = {};
+  for (const v of ['Full Size', 'TKL', '60%']) formatVals[v] = (await mkVal(attrFormat.id, v)).id;
 
   // ------------------------------- Categorias --------------------------------
-  console.log('Seed: categorias (arbol)...');
-  const catPerifericos = await prisma.category.create({
-    data: { name: 'Perifericos', slug: 'perifericos', displayOrder: 1 },
+  console.log('Seed: categorias...');
+  const parents = ['Perifericos', 'Componentes', 'Accesorios'];
+  const parentRec: Record<string, { id: string }> = {};
+  let order = 1;
+  for (const name of parents) {
+    parentRec[name] = await prisma.category.create({ data: { name, slug: slugify(name), displayOrder: order++ } });
+  }
+  const promo = await prisma.category.create({
+    data: { name: 'Ofertas Villano', slug: 'ofertas-villano', isPromo: true, promoBadgeText: 'OFERTA', displayOrder: order++ },
   });
-  const catComponentes = await prisma.category.create({
-    data: { name: 'Componentes', slug: 'componentes', displayOrder: 2 },
-  });
-  const catOfertas = await prisma.category.create({
-    data: {
-      name: 'Ofertas Villano',
-      slug: 'ofertas-villano',
-      isPromo: true,
-      promoBadgeText: 'PROMO',
-      displayOrder: 3,
-    },
-  });
-
-  const subTeclados = await prisma.category.create({
-    data: { name: 'Teclados Mecanicos', slug: 'teclados-mecanicos', parentId: catPerifericos.id, displayOrder: 1 },
-  });
-  const subMouse = await prisma.category.create({
-    data: { name: 'Mouse Gamer', slug: 'mouse-gamer', parentId: catPerifericos.id, displayOrder: 2 },
-  });
-  const subAudio = await prisma.category.create({
-    data: { name: 'Audifonos', slug: 'audifonos', parentId: catPerifericos.id, displayOrder: 3 },
-  });
-  const subGpu = await prisma.category.create({
-    data: { name: 'Tarjetas de Video', slug: 'tarjetas-de-video', parentId: catComponentes.id, displayOrder: 1 },
-  });
-  const subRam = await prisma.category.create({
-    data: { name: 'Memorias RAM', slug: 'memorias-ram', parentId: catComponentes.id, displayOrder: 2 },
-  });
-
-  // ------------------------------- Productos ---------------------------------
-  console.log('Seed: productos, variantes e imagenes...');
-
-  type VariantSpec = { sku: string; price: number; stock: number; attrs: { id: string }[] };
-  type ProductSpec = {
-    categoryId: string;
-    name: string;
-    slug: string;
-    brand: string;
-    description: string;
-    basePrice: number;
-    hue: 'purple' | 'green';
-    variants: VariantSpec[];
-  };
-
-  const products: ProductSpec[] = [
-    {
-      categoryId: subTeclados.id,
-      name: 'Teclado Mecanico Villano K1 RGB',
-      slug: 'teclado-mecanico-villano-k1-rgb',
-      brand: 'Villano',
-      description: 'Teclado mecanico RGB con switches hot-swap y estructura de aluminio.',
-      basePrice: 420,
-      hue: 'purple',
-      variants: [
-        { sku: 'VK1-BLUE-TKL', price: 420, stock: 12, attrs: [swBlue, fmtTkl, connWired] },
-        { sku: 'VK1-RED-FULL', price: 450, stock: 3, attrs: [swRed, fmtFull, connWired] },
-        { sku: 'VK1-BROWN-60', price: 440, stock: 0, attrs: [swBrown, fmt60, connWired] },
-      ],
-    },
-    {
-      categoryId: subTeclados.id,
-      name: 'Teclado Redragon Kumara Pro',
-      slug: 'teclado-redragon-kumara-pro',
-      brand: 'Redragon',
-      description: 'Clasico TKL con retroiluminacion y switches Blue tactiles.',
-      basePrice: 260,
-      hue: 'green',
-      variants: [
-        { sku: 'RKP-BLUE-TKL', price: 260, stock: 20, attrs: [swBlue, fmtTkl, connWired] },
-        { sku: 'RKP-RED-TKL', price: 275, stock: 8, attrs: [swRed, fmtTkl, connWired] },
-      ],
-    },
-    {
-      categoryId: subMouse.id,
-      name: 'Mouse Villano Phantom 26K',
-      slug: 'mouse-villano-phantom-26k',
-      brand: 'Villano',
-      description: 'Mouse ultraligero 26.000 DPI con sensor optico y switches de 80M clicks.',
-      basePrice: 320,
-      hue: 'purple',
-      variants: [
-        { sku: 'VPH-WIRELESS', price: 320, stock: 15, attrs: [connWireless] },
-        { sku: 'VPH-WIRED', price: 280, stock: 4, attrs: [connWired] },
-      ],
-    },
-    {
-      categoryId: subMouse.id,
-      name: 'Mouse Logitech G Pro X Superlight',
-      slug: 'mouse-logitech-g-pro-x-superlight',
-      brand: 'Logitech',
-      description: 'Mouse inalambrico de competicion, 63g, sensor HERO 25K.',
-      basePrice: 690,
-      hue: 'green',
-      variants: [{ sku: 'LGPX-WL', price: 690, stock: 6, attrs: [connWireless] }],
-    },
-    {
-      categoryId: subAudio.id,
-      name: 'Audifonos HyperX Cloud III',
-      slug: 'audifonos-hyperx-cloud-iii',
-      brand: 'HyperX',
-      description: 'Audifonos gamer con sonido espacial y microfono desmontable.',
-      basePrice: 540,
-      hue: 'purple',
-      variants: [
-        { sku: 'HX3-WIRED', price: 540, stock: 9, attrs: [connWired] },
-        { sku: 'HX3-BT', price: 620, stock: 2, attrs: [connBt] },
-      ],
-    },
-    {
-      categoryId: subGpu.id,
-      name: 'Tarjeta de Video RTX 4060 Ti 8GB',
-      slug: 'tarjeta-de-video-rtx-4060-ti-8gb',
-      brand: 'NVIDIA',
-      description: 'GPU para 1080p/1440p con DLSS 3 y ray tracing.',
-      basePrice: 2850,
-      hue: 'green',
-      variants: [{ sku: 'RTX4060TI-8G', price: 2850, stock: 5, attrs: [] }],
-    },
-    {
-      categoryId: subGpu.id,
-      name: 'Tarjeta de Video RX 7700 XT 12GB',
-      slug: 'tarjeta-de-video-rx-7700-xt-12gb',
-      brand: 'AMD',
-      description: 'GPU de gama media-alta para 1440p de alto rendimiento.',
-      basePrice: 3200,
-      hue: 'purple',
-      variants: [{ sku: 'RX7700XT-12G', price: 3200, stock: 0, attrs: [] }],
-    },
-    {
-      categoryId: subRam.id,
-      name: 'Memoria RAM Villano Neon 32GB DDR5',
-      slug: 'memoria-ram-villano-neon-32gb-ddr5',
-      brand: 'Villano',
-      description: 'Kit 2x16GB DDR5 6000MHz con disipador y RGB direccionable.',
-      basePrice: 780,
-      hue: 'green',
-      variants: [
-        { sku: 'VRAM-32-6000', price: 780, stock: 14, attrs: [] },
-        { sku: 'VRAM-16-6000', price: 430, stock: 3, attrs: [] },
-      ],
-    },
-  ];
-
-  let idx = 0;
-  for (const p of products) {
-    idx += 1;
-    const product = await prisma.product.create({
-      data: {
-        categoryId: p.categoryId,
-        name: p.name,
-        slug: p.slug,
-        description: p.description,
-        brand: p.brand,
-        basePrice: p.basePrice,
-        status: ProductStatus.activo,
-      },
+  const subRec: Record<string, { id: string }> = {};
+  let subOrder = 1;
+  for (const [sub, parent] of Object.entries(SUB_PARENT)) {
+    subRec[sub] = await prisma.category.create({
+      data: { name: sub, slug: slugify(sub), parentId: parentRec[parent].id, displayOrder: subOrder++ },
     });
+  }
 
-    // Imagenes (2 por producto).
-    const img1 = await makePlaceholder(`${p.slug}-1.webp`, esc(p.brand), p.hue);
-    const img2 = await makePlaceholder(`${p.slug}-2.webp`, esc(`0${idx}`), p.hue === 'purple' ? 'green' : 'purple');
-    await prisma.productImage.createMany({
-      data: [
-        { productId: product.id, urlWebp: img1, displayOrder: 0, isPrimary: true },
-        { productId: product.id, urlWebp: img2, displayOrder: 1, isPrimary: false },
-      ],
-    });
+  // ---------------------- Productos desde imagenes reales --------------------
+  console.log('Seed: procesando imagenes reales y creando productos...');
+  let productIdx = 0;
+  const createdProductIds: string[] = [];
+  let folders: { name: string }[] = [];
+  if (!existsSync(SRC_IMAGES)) {
+    console.warn(`Seed: no se encontro la carpeta de imagenes (${SRC_IMAGES}). Se omiten los productos.`);
+    console.warn('Copia las imagenes de catalogo a esa ruta y re-ejecuta el seed.');
+  } else {
+    await rm(OUT_IMAGES, { recursive: true, force: true });
+    await mkdir(OUT_IMAGES, { recursive: true });
+    folders = (await readdir(SRC_IMAGES, { withFileTypes: true })).filter((d) => d.isDirectory());
+  }
 
-    for (const v of p.variants) {
-      const variant = await prisma.productVariant.create({
+  for (const folder of folders) {
+    const cfg = FOLDER_CFG[folder.name];
+    if (!cfg) continue;
+    const files = (await readdir(path.join(SRC_IMAGES, folder.name))).filter((f) => /\.png$/i.test(f)).sort();
+
+    // Agrupar por producto (nombre sin sufijo _N).
+    const groups = new Map<string, string[]>();
+    for (const f of files) {
+      const base = f.replace(/\.png$/i, '').replace(/_\d+$/, '');
+      if (!groups.has(base)) groups.set(base, []);
+      groups.get(base)!.push(f);
+    }
+
+    for (const [base, imgs] of groups) {
+      const seed = hash(folder.name + base);
+      const rawName = titleCase(base).slice(0, 70);
+      const name = rawName.length < 3 ? titleCase(folder.name) : rawName;
+      const brand = BRANDS.find((b) => base.replace(/_/g, ' ').startsWith(b));
+      const brandName = brand ? titleCase(brand) : null;
+
+      const [lo, hi] = cfg.priceRange;
+      const basePrice = Math.round((lo + (seed % (hi - lo))) / 5) * 5; // multiplos de 5
+
+      // Cada 6º producto va a "Ofertas Villano" (para poblar la promo).
+      const inPromo = productIdx % 6 === 0;
+      const categoryId = inPromo ? promo.id : subRec[cfg.sub].id;
+
+      const product = await prisma.product.create({
         data: {
-          productId: product.id,
-          sku: v.sku,
-          price: v.price,
-          stockQuantity: v.stock,
+          categoryId,
+          name: brandName && !name.startsWith(brandName) ? `${brandName} ${name}` : name,
+          slug: slugify(`${brand ?? cfg.sub}-${base}-${seed % 9999}`),
+          description: `${name}${brandName ? ` de ${brandName}` : ''}. Producto gamer disponible en Villano Gamer Store, Santa Cruz.`,
+          brand: brandName,
+          basePrice,
+          status: ProductStatus.activo,
         },
       });
-      if (v.attrs.length) {
-        await prisma.variantAttributeValue.createMany({
-          data: v.attrs.map((a) => ({ variantId: variant.id, attributeValueId: a.id })),
+      createdProductIds.push(product.id);
+      productIdx++;
+
+      // Imagenes: convertir cada PNG del grupo a WebP.
+      let imgOrder = 0;
+      for (const f of imgs.slice(0, 4)) {
+        const outName = `${slugify(folder.name + '-' + base)}-${imgOrder}.webp`;
+        const buf = await sharp(path.join(SRC_IMAGES, folder.name, f))
+          .resize({ width: 1000, height: 1000, fit: 'inside', withoutEnlargement: true })
+          .webp({ quality: 82 })
+          .toBuffer();
+        await writeFile(path.join(OUT_IMAGES, outName), buf);
+        await prisma.productImage.create({
+          data: { productId: product.id, urlWebp: `/uploads/seed/products/${outName}`, displayOrder: imgOrder, isPrimary: imgOrder === 0 },
         });
+        imgOrder++;
+      }
+
+      // Atributos de la variante segun la categoria.
+      const attrIds: string[] = [];
+      if (cfg.conn) attrIds.push(connVals[cfg.conn]);
+      if (cfg.mechanical) attrIds.push(switchVals[pick(['Blue', 'Red', 'Brown'], seed)]);
+      if (cfg.magnetic) attrIds.push(switchVals['Magnetico']);
+      if (cfg.keyboard) attrIds.push(formatVals[pick(['Full Size', 'TKL', '60%'], seed >> 3)]);
+
+      // Stock variado para cubrir todos los estados (agotado / pocas / en stock).
+      const stock = pick([0, 2, 3, 8, 12, 16, 20, 4], seed);
+      const v1 = await prisma.productVariant.create({
+        data: { productId: product.id, sku: `${slugify(base).toUpperCase().slice(0, 20)}-${seed % 999}`, price: basePrice, stockQuantity: stock },
+      });
+      const attrIds1 = [...new Set(attrIds.filter((id): id is string => Boolean(id)))];
+      if (attrIds1.length) {
+        await prisma.variantAttributeValue.createMany({ data: attrIds1.map((id) => ({ variantId: v1.id, attributeValueId: id })) });
+      }
+      // Segunda variante para teclados (otro formato) — mas realismo.
+      if (cfg.keyboard) {
+        const fmt2 = pick(['Full Size', 'TKL', '60%'], (seed >> 5) + 1);
+        const v2 = await prisma.productVariant.create({
+          data: { productId: product.id, sku: `${slugify(base).toUpperCase().slice(0, 18)}-${(seed % 999) + 1}`, price: basePrice + 40, stockQuantity: pick([0, 5, 9, 14], seed >> 2) },
+        });
+        const a2raw = [...(cfg.conn ? [connVals[cfg.conn]] : []), formatVals[fmt2], ...(cfg.magnetic ? [switchVals['Magnetico']] : [switchVals[pick(['Blue', 'Red', 'Brown'], seed >> 1)]])];
+        const a2 = [...new Set(a2raw.filter((id): id is string => Boolean(id)))];
+        if (a2.length) await prisma.variantAttributeValue.createMany({ data: a2.map((id) => ({ variantId: v2.id, attributeValueId: id })) });
       }
     }
   }
+  console.log(`Seed: ${createdProductIds.length} productos creados con imagenes reales.`);
 
-  // Algunos eventos para que las metricas no salgan vacias.
-  console.log('Seed: eventos de metricas de ejemplo...');
-  const allProducts = await prisma.product.findMany({ select: { id: true } });
+  // ------------------------------ Eventos ------------------------------------
+  console.log('Seed: eventos de metricas...');
   const eventData: { productId: string; eventType: 'view' | 'add_to_cart' | 'whatsapp_click'; sessionId: string }[] = [];
-  allProducts.forEach((prod, i) => {
-    const views = 20 - i;
-    for (let v = 0; v < views; v++) eventData.push({ productId: prod.id, eventType: 'view', sessionId: `sess-${i}-${v}` });
-    for (let a = 0; a < Math.max(1, 8 - i); a++) eventData.push({ productId: prod.id, eventType: 'add_to_cart', sessionId: `sess-${i}-${a}` });
-    for (let w = 0; w < Math.max(0, 4 - i); w++) eventData.push({ productId: prod.id, eventType: 'whatsapp_click', sessionId: `sess-${i}-${w}` });
+  createdProductIds.forEach((id, i) => {
+    const views = Math.max(2, 30 - i);
+    for (let v = 0; v < views; v++) eventData.push({ productId: id, eventType: 'view', sessionId: `s-${i}-${v}` });
+    for (let a = 0; a < Math.max(1, 12 - i); a++) eventData.push({ productId: id, eventType: 'add_to_cart', sessionId: `s-${i}-${a}` });
+    for (let w = 0; w < Math.max(0, 6 - i); w++) eventData.push({ productId: id, eventType: 'whatsapp_click', sessionId: `s-${i}-${w}` });
   });
   await prisma.productEvent.createMany({ data: eventData });
 
-  // ------------------------------- Horario -----------------------------------
+  // ------------------------------- Tienda ------------------------------------
   console.log('Seed: horario y ubicacion...');
-  // 0=domingo ... 6=sabado. Lun-Vie 09:00-20:00, Sab 10:00-21:00, Dom cerrado.
-  const hours = [
-    { dayOfWeek: 0, openTime: '00:00', closeTime: '00:00', isClosed: true },
-    { dayOfWeek: 1, openTime: '09:00', closeTime: '20:00', isClosed: false },
-    { dayOfWeek: 2, openTime: '09:00', closeTime: '20:00', isClosed: false },
-    { dayOfWeek: 3, openTime: '09:00', closeTime: '20:00', isClosed: false },
-    { dayOfWeek: 4, openTime: '09:00', closeTime: '20:00', isClosed: false },
-    { dayOfWeek: 5, openTime: '09:00', closeTime: '21:00', isClosed: false },
-    { dayOfWeek: 6, openTime: '10:00', closeTime: '21:00', isClosed: false },
-  ];
-  await prisma.businessHour.createMany({ data: hours });
-
+  await prisma.businessHour.createMany({
+    data: [
+      { dayOfWeek: 0, openTime: '00:00', closeTime: '00:00', isClosed: true },
+      { dayOfWeek: 1, openTime: '09:00', closeTime: '20:00', isClosed: false },
+      { dayOfWeek: 2, openTime: '09:00', closeTime: '20:00', isClosed: false },
+      { dayOfWeek: 3, openTime: '09:00', closeTime: '20:00', isClosed: false },
+      { dayOfWeek: 4, openTime: '09:00', closeTime: '20:00', isClosed: false },
+      { dayOfWeek: 5, openTime: '09:00', closeTime: '21:00', isClosed: false },
+      { dayOfWeek: 6, openTime: '10:00', closeTime: '21:00', isClosed: false },
+    ],
+  });
   await prisma.storeLocation.create({
     data: {
-      mallName: 'Ventura Mall',
-      address: 'Av. San Martin, Equipetrol, Santa Cruz de la Sierra',
-      passageNumber: 'Pasaje 3',
-      localeNumber: 'Local 214',
-      latitude: -17.7592,
-      longitude: -63.1975,
+      mallName: 'Ventura Mall', address: 'Av. San Martin, Equipetrol, Santa Cruz de la Sierra',
+      passageNumber: 'Pasaje 3', localeNumber: 'Local 214', latitude: -17.7592, longitude: -63.1975,
       googleMapsUrl: 'https://maps.google.com/?q=-17.7592,-63.1975',
       wazeUrl: 'https://waze.com/ul?ll=-17.7592,-63.1975&navigate=yes',
     },
@@ -427,10 +327,5 @@ async function main() {
 }
 
 main()
-  .catch((e) => {
-    console.error('Seed fallo:', e);
-    process.exit(1);
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
+  .catch((e) => { console.error('Seed fallo:', e); process.exit(1); })
+  .finally(async () => { await prisma.$disconnect(); });

@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import { ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import type { ProductDetailDTO, StockStatus } from '@villano/shared-types';
 import { useAdminProducts, useProductMutations } from '../hooks/admin';
 import { useAuth } from '../store/auth';
 import { formatBs } from '../lib/format';
@@ -6,97 +8,141 @@ import { toast } from '../lib/toast';
 import { EmptyState, ErrorState, PageLoader, StockPill } from '../components/shared';
 import { ProductFormModal } from './ProductFormModal';
 
+type SortKey = 'name' | 'category' | 'basePrice' | 'variants' | 'stock' | 'status';
+const STOCK_RANK: Record<StockStatus, number> = { agotado: 0, pocas_unidades: 1, en_stock: 2 };
+
 export default function ProductsPage() {
   const { can } = useAuth();
   const [search, setSearch] = useState('');
-  const [page, setPage] = useState(1);
-  const [editing, setEditing] = useState<string | null | undefined>(undefined); // undefined=closed, null=new
-  const query = `page=${page}&pageSize=15${search ? `&search=${encodeURIComponent(search)}` : ''}`;
-  const { data, isLoading, isError, refetch } = useAdminProducts(query);
+  const [category, setCategory] = useState('');
+  const [status, setStatus] = useState('');
+  const [sort, setSort] = useState<{ key: SortKey; dir: 1 | -1 }>({ key: 'name', dir: 1 });
+  const [editing, setEditing] = useState<string | null | undefined>(undefined);
+
+  // Catalogo de tienda: traemos todo y filtramos/ordenamos en cliente (consistente).
+  const { data, isLoading, isError, refetch } = useAdminProducts('page=1&pageSize=200');
   const { remove } = useProductMutations();
 
+  const categories = useMemo(
+    () => Array.from(new Set((data?.items ?? []).map((p) => p.categoryName))).sort(),
+    [data],
+  );
+
+  const rows = useMemo(() => {
+    let items = data?.items ?? [];
+    if (search.trim()) {
+      const s = search.toLowerCase();
+      items = items.filter((p) => p.name.toLowerCase().includes(s) || (p.brand ?? '').toLowerCase().includes(s));
+    }
+    if (category) items = items.filter((p) => p.categoryName === category);
+    if (status) items = items.filter((p) => p.status === status);
+    const sorted = [...items].sort((a, b) => {
+      const dir = sort.dir;
+      switch (sort.key) {
+        case 'name': return a.name.localeCompare(b.name) * dir;
+        case 'category': return a.categoryName.localeCompare(b.categoryName) * dir;
+        case 'basePrice': return (a.basePrice - b.basePrice) * dir;
+        case 'variants': return (a.variants.length - b.variants.length) * dir;
+        case 'stock': return (STOCK_RANK[a.aggregateStock] - STOCK_RANK[b.aggregateStock]) * dir;
+        case 'status': return a.status.localeCompare(b.status) * dir;
+        default: return 0;
+      }
+    });
+    return sorted;
+  }, [data, search, category, status, sort]);
+
+  const toggleSort = (key: SortKey) =>
+    setSort((s) => (s.key === key ? { key, dir: (s.dir * -1) as 1 | -1 } : { key, dir: 1 }));
+
   const onDelete = (id: string, name: string) => {
-    if (!confirm(`Desactivar el producto "${name}"? (borrado logico)`)) return;
+    if (!confirm(`Desactivar el producto "${name}"? (borrado lógico)`)) return;
     remove.mutate(id, {
       onSuccess: () => toast.success('Producto desactivado'),
       onError: (e) => toast.error(e instanceof Error ? e.message : 'Error'),
     });
   };
 
+  const SortHead = ({ label, k, className = '' }: { label: string; k: SortKey; className?: string }) => (
+    <th className={`p-3 ${className}`}>
+      <button className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-txt-muted hover:text-txt-primary" onClick={() => toggleSort(k)}>
+        {label}
+        {sort.key !== k ? <ArrowUpDown className="h-3 w-3 opacity-50" /> : sort.dir === 1 ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
+      </button>
+    </th>
+  );
+
   return (
     <div>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="font-display text-2xl uppercase tracking-wide text-txt-primary">Productos</h1>
+        <h1 className="font-display text-2xl tracking-wide text-txt-primary">Productos</h1>
         {can('crear_producto') && (
           <button className="btn-primary" onClick={() => setEditing(null)}>+ Nuevo producto</button>
         )}
       </div>
 
-      <input
-        className="input mb-4 max-w-md"
-        placeholder="Buscar por nombre o marca…"
-        value={search}
-        onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-      />
+      <div className="mb-4 grid gap-2 sm:grid-cols-3">
+        <input className="input" placeholder="Buscar por nombre o marca…" value={search} onChange={(e) => setSearch(e.target.value)} />
+        <select className="input" value={category} onChange={(e) => setCategory(e.target.value)}>
+          <option value="">Todas las categorías</option>
+          {categories.map((c) => <option key={c} value={c}>{c}</option>)}
+        </select>
+        <select className="input" value={status} onChange={(e) => setStatus(e.target.value)}>
+          <option value="">Todos los estados</option>
+          <option value="activo">Activo</option>
+          <option value="inactivo">Inactivo</option>
+        </select>
+      </div>
 
       {isError ? (
         <ErrorState message="No se pudieron cargar los productos." onRetry={() => refetch()} />
       ) : isLoading ? (
         <PageLoader />
-      ) : data && data.items.length === 0 ? (
-        <EmptyState title="Sin productos" hint="Crea el primero con el boton de arriba." />
+      ) : rows.length === 0 ? (
+        <EmptyState title="Sin productos" hint="Ajustá los filtros o creá el primero." />
       ) : (
-        <>
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[640px] text-sm">
-              <thead>
-                <tr className="border-b border-base-border text-left text-xs uppercase tracking-wide text-txt-faint">
-                  <th className="p-2">Producto</th>
-                  <th className="p-2">Categoria</th>
-                  <th className="p-2">Precio base</th>
-                  <th className="p-2">Variantes</th>
-                  <th className="p-2">Stock</th>
-                  <th className="p-2">Estado</th>
-                  <th className="p-2"></th>
+        <div className="card overflow-x-auto p-0">
+          <table className="w-full min-w-[680px] text-sm">
+            <thead>
+              <tr className="border-b border-base-border text-left">
+                <SortHead label="Producto" k="name" />
+                <SortHead label="Categoría" k="category" />
+                <SortHead label="Precio base" k="basePrice" />
+                <SortHead label="Variantes" k="variants" />
+                <SortHead label="Stock" k="stock" />
+                <SortHead label="Estado" k="status" />
+                <th className="p-3" />
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((p: ProductDetailDTO) => (
+                <tr key={p.id} className="border-b border-base-border/40 odd:bg-base-void/40 hover:bg-base-border/20">
+                  <td className="p-3 font-medium text-txt-primary">
+                    {p.name}
+                    {p.brand && <span className="ml-1 text-xs text-txt-faint">· {p.brand}</span>}
+                  </td>
+                  <td className="p-3 text-txt-muted">{p.categoryName}</td>
+                  <td className="p-3 font-semibold text-txt-primary">{formatBs(p.basePrice)}</td>
+                  <td className="p-3 text-txt-muted">{p.variants.length}</td>
+                  <td className="p-3"><StockPill status={p.aggregateStock} /></td>
+                  <td className="p-3">
+                    <span className={p.status === 'activo' ? 'badge badge-success' : 'badge badge-danger'}>
+                      {p.status === 'activo' ? 'Activo' : 'Inactivo'}
+                    </span>
+                  </td>
+                  <td className="p-3 text-right whitespace-nowrap">
+                    <button className="font-medium text-neon-purple-bright hover:underline" onClick={() => setEditing(p.id)}>Editar</button>
+                    {can('eliminar_producto') && p.status === 'activo' && (
+                      <button className="ml-3 font-medium text-status-out hover:underline" onClick={() => onDelete(p.id, p.name)}>Desactivar</button>
+                    )}
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {data?.items.map((p) => (
-                  <tr key={p.id} className="border-b border-base-border/50 hover:bg-base-panel/50">
-                    <td className="p-2 font-medium text-txt-primary">
-                      {p.name}
-                      {p.brand && <span className="ml-1 text-xs text-txt-faint">· {p.brand}</span>}
-                    </td>
-                    <td className="p-2 text-txt-muted">{p.categoryName}</td>
-                    <td className="p-2 text-neon-green">{formatBs(p.basePrice)}</td>
-                    <td className="p-2 text-txt-muted">{p.variants.length}</td>
-                    <td className="p-2"><StockPill status={p.aggregateStock} /></td>
-                    <td className="p-2">
-                      <span className={p.status === 'activo' ? 'text-status-stock' : 'text-txt-faint'}>
-                        {p.status === 'activo' ? 'Activo' : 'Inactivo'}
-                      </span>
-                    </td>
-                    <td className="p-2 text-right">
-                      <button className="text-neon-purple-bright hover:underline" onClick={() => setEditing(p.id)}>Editar</button>
-                      {can('eliminar_producto') && p.status === 'activo' && (
-                        <button className="ml-3 text-status-out hover:underline" onClick={() => onDelete(p.id, p.name)}>Desactivar</button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {data && data.totalPages > 1 && (
-            <div className="mt-4 flex items-center justify-center gap-3 text-sm">
-              <button className="btn-primary py-1.5" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>← Anterior</button>
-              <span className="text-txt-muted">Pagina {data.page} de {data.totalPages}</span>
-              <button className="btn-primary py-1.5" disabled={page >= data.totalPages} onClick={() => setPage((p) => p + 1)}>Siguiente →</button>
-            </div>
-          )}
-        </>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
+
+      <p className="mt-2 text-xs text-txt-faint">{rows.length} producto(s)</p>
 
       {editing !== undefined && <ProductFormModal productId={editing} onClose={() => setEditing(undefined)} />}
     </div>

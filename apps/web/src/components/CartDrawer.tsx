@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { ShoppingBag, X, Minus, Plus, MessageSquare, Trash2 } from 'lucide-react';
 import { useCart } from '../store/cart';
 import { useCreateOrder, markWhatsappSent, trackEvent } from '../hooks/catalog';
 import { formatBs } from '../lib/format';
@@ -45,17 +46,17 @@ export function CartDrawer() {
         aria-hidden={!isOpen}
       >
         <div className="flex items-center justify-between border-b border-base-border p-4">
-          <h2 className="font-display text-lg uppercase tracking-wider text-neon-purple-bright">
-            Tu carrito
+          <h2 className="inline-flex items-center gap-2 font-display text-lg uppercase tracking-wider text-neon-purple-bright">
+            <ShoppingBag className="h-5 w-5 text-neon-purple" /> Tu carrito
           </h2>
           <button onClick={close} className="rounded p-1 text-txt-muted hover:text-neon-purple" aria-label="Cerrar carrito">
-            ✕
+            <X className="h-5 w-5" />
           </button>
         </div>
 
         {items.length === 0 ? (
           <div className="flex flex-1 flex-col items-center justify-center gap-3 p-8 text-center">
-            <span className="text-5xl opacity-50">🛒</span>
+            <ShoppingBag className="h-16 w-16 text-txt-faint opacity-40" />
             <p className="text-txt-muted">Tu carrito esta vacio.</p>
             <Link to="/catalogo" onClick={close} className="btn-primary">
               Ver catalogo
@@ -75,16 +76,16 @@ export function CartDrawer() {
                     <p className="text-sm text-neon-green">{formatBs(i.unitPrice)}</p>
                     <div className="mt-1 flex items-center gap-2">
                       <div className="flex items-center rounded border border-base-border">
-                        <button className="px-2 text-txt-muted hover:text-neon-purple" onClick={() => setQuantity(i.variantId, i.quantity - 1)} aria-label="Disminuir">
-                          −
+                        <button className="p-1 text-txt-muted hover:text-neon-purple" onClick={() => setQuantity(i.variantId, i.quantity - 1)} aria-label="Disminuir">
+                          <Minus className="h-3.5 w-3.5" />
                         </button>
                         <span className="w-8 text-center text-sm">{i.quantity}</span>
-                        <button className="px-2 text-txt-muted hover:text-neon-purple disabled:opacity-40" onClick={() => setQuantity(i.variantId, i.quantity + 1)} disabled={i.quantity >= i.maxStock} aria-label="Aumentar">
-                          +
+                        <button className="p-1 text-txt-muted hover:text-neon-purple disabled:opacity-40" onClick={() => setQuantity(i.variantId, i.quantity + 1)} disabled={i.quantity >= i.maxStock} aria-label="Aumentar">
+                          <Plus className="h-3.5 w-3.5" />
                         </button>
                       </div>
-                      <button className="ml-auto text-xs text-status-out hover:underline" onClick={() => removeItem(i.variantId)}>
-                        Quitar
+                      <button className="ml-auto inline-flex items-center gap-1 text-xs text-status-out hover:underline" onClick={() => removeItem(i.variantId)}>
+                        <Trash2 className="h-3.5 w-3.5" /> Quitar
                       </button>
                     </div>
                   </div>
@@ -116,9 +117,9 @@ export function CartDrawer() {
               <button
                 onClick={finalize}
                 disabled={createOrder.isPending}
-                className="btn-accent w-full py-3 text-base"
+                className="btn-accent w-full py-3 text-base flex items-center justify-center gap-2"
               >
-                {createOrder.isPending ? <><Spinner className="h-4 w-4" /> Generando…</> : 'Finalizar por WhatsApp'}
+                {createOrder.isPending ? <><Spinner className="h-4 w-4" /> Generando…</> : <><MessageSquare className="h-5 w-5" /> Finalizar por WhatsApp</>}
               </button>
               <p className="mt-2 text-center text-xs text-txt-faint">
                 Coordinamos pago y entrega por WhatsApp. Sin pago online.
