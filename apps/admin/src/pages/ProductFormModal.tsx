@@ -20,6 +20,7 @@ import { formatBs } from '../lib/format';
 import { toast } from '../lib/toast';
 import { confirmAction } from '../lib/confirm';
 import { Field, Spinner } from '../components/ui';
+import { useDismissable } from '../lib/useDismissable';
 
 function flattenCats(nodes: CategoryNode[], depth = 0): { id: string; label: string }[] {
   return nodes.flatMap((n) => [
@@ -47,6 +48,7 @@ export function ProductFormModal({ productId, onClose }: { productId: string | n
   const [show, setShow] = useState(false);
 
   useEffect(() => setShow(true), []);
+  useDismissable(true, onClose);
 
   useEffect(() => {
     if (existing) {
@@ -222,9 +224,24 @@ function ImagesSection({ product }: { product: ProductDetailDTO }) {
               {img.isPrimary ? (
                 <span className="inline-flex items-center gap-0.5 text-neon-green"><Star className="h-3 w-3 fill-current" /> Principal</span>
               ) : (
-                <button onClick={() => setPrimary.mutate(img.id)} className="text-neon-green hover:underline">Principal</button>
+                <button
+                  onClick={() => setPrimary.mutate(img.id, { onSuccess: () => toast.success('Imagen principal actualizada'), onError: (e) => toast.error(e instanceof Error ? e.message : 'Error') })}
+                  className="text-neon-green hover:underline"
+                >
+                  Principal
+                </button>
               )}
-              <button onClick={() => remove.mutate(img.id)} className="text-status-out" aria-label="Eliminar imagen" title="Eliminar imagen"><X className="h-3 w-3" /></button>
+              <button
+                onClick={async () => {
+                  const ok = await confirmAction({ title: '¿Eliminar esta imagen?', description: 'La imagen se elimina de forma permanente del producto.', confirmLabel: 'Eliminar', danger: true });
+                  if (ok) remove.mutate(img.id, { onSuccess: () => toast.success('Imagen eliminada'), onError: (e) => toast.error(e instanceof Error ? e.message : 'Error') });
+                }}
+                className="text-status-out"
+                aria-label="Eliminar imagen"
+                title="Eliminar imagen"
+              >
+                <X className="h-3 w-3" />
+              </button>
             </div>
           </div>
         ))}

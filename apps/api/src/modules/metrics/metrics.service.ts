@@ -6,6 +6,20 @@ import { badRequest } from '../../lib/errors.js';
 export async function trackEvent(input: TrackEventInput) {
   const product = await prisma.product.findUnique({ where: { id: input.productId }, select: { id: true } });
   if (!product) throw badRequest('Producto inexistente');
+
+  // Dedupe: ignora eventos identicos de la misma sesion en una ventana corta
+  // (protege las metricas contra dobles disparos del cliente por un mismo click).
+  const recent = await prisma.productEvent.findFirst({
+    where: {
+      productId: input.productId,
+      eventType: input.eventType,
+      sessionId: input.sessionId,
+      createdAt: { gte: new Date(Date.now() - 10_000) },
+    },
+    select: { id: true },
+  });
+  if (recent) return { ok: true, deduped: true };
+
   await prisma.productEvent.create({
     data: { productId: input.productId, eventType: input.eventType, sessionId: input.sessionId },
   });

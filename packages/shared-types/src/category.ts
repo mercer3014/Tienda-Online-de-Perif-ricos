@@ -11,7 +11,10 @@ export const categoryBaseSchema = z.object({
 });
 
 export const createCategorySchema = categoryBaseSchema;
-export const updateCategorySchema = categoryBaseSchema.partial();
+export const updateCategorySchema = categoryBaseSchema.partial().extend({
+  /** Permite reactivar una categoria desactivada. */
+  active: z.boolean().optional(),
+});
 
 /** Mover una categoria dentro del arbol (reparent + reordenar). */
 export const moveCategorySchema = z.object({
@@ -31,6 +34,8 @@ export interface CategoryNode {
   isPromo: boolean;
   promoBadgeText: string | null;
   displayOrder: number;
+  /** false = desactivada (borrado logico). El catalogo publico solo recibe activas. */
+  active: boolean;
   productCount?: number;
   children: CategoryNode[];
 }

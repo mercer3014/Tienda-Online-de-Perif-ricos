@@ -2,6 +2,7 @@ import clsx from 'clsx';
 import type { ReactNode } from 'react';
 import { AlertTriangle, X } from 'lucide-react';
 import { useToast } from '../lib/toast';
+import { useDismissable } from '../lib/useDismissable';
 
 export function Spinner({ className }: { className?: string }) {
   return (
@@ -47,6 +48,7 @@ export function PageLoader() {
 }
 
 export function Modal({ title, onClose, children, wide }: { title: string; onClose: () => void; children: ReactNode; wide?: boolean }) {
+  useDismissable(true, onClose);
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/70 p-4" onClick={onClose}>
       <div

@@ -1,15 +1,19 @@
 import { useMemo, useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { X } from 'lucide-react';
 import { useAttributes, useProducts, useCategoryTree } from '../hooks/catalog';
 import { ProductCard, ProductCardSkeleton } from '../components/ProductCard';
 import { EmptyState, ErrorState, Spinner } from '../components/ui';
 import { usePageMeta } from '../components/Layout';
+import { useDismissable } from '../lib/useDismissable';
 
 const PAGE_SIZE = 12;
 
 export default function CatalogPage() {
   const [params, setParams] = useSearchParams();
   const [showFilters, setShowFilters] = useState(false);
+  // Escape cierra el panel de filtros y se bloquea el scroll del fondo.
+  useDismissable(showFilters, () => setShowFilters(false));
 
   const categoria = params.get('categoria') ?? '';
   const search = params.get('search') ?? '';
@@ -161,14 +165,37 @@ export default function CatalogPage() {
           <div className="card sticky top-32 p-4">{filtersPanel}</div>
         </aside>
 
-        {/* Filtros mobile (colapsable) */}
+        {/* Filtros mobile: panel con backdrop, boton X, Escape y scroll-lock */}
         {showFilters && (
-          <div className="card fixed inset-x-4 top-24 z-30 max-h-[70vh] overflow-y-auto p-4 lg:hidden">
-            {filtersPanel}
-            <button className="btn-accent mt-4 w-full" onClick={() => setShowFilters(false)}>
-              Ver resultados
-            </button>
-          </div>
+          <>
+            <div
+              className="fixed inset-0 z-30 bg-black/70 lg:hidden"
+              onClick={() => setShowFilters(false)}
+              aria-hidden
+            />
+            <div
+              className="card fixed inset-x-4 top-20 z-40 flex max-h-[75vh] flex-col lg:hidden"
+              role="dialog"
+              aria-label="Filtros"
+            >
+              <div className="flex items-center justify-between border-b border-base-border px-4 py-3">
+                <h2 className="font-display text-sm uppercase tracking-wide text-txt-primary">Filtros</h2>
+                <button
+                  onClick={() => setShowFilters(false)}
+                  className="rounded p-1 text-txt-muted hover:text-neon-purple"
+                  aria-label="Cerrar filtros"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+              <div className="flex-1 overflow-y-auto p-4">{filtersPanel}</div>
+              <div className="border-t border-base-border p-3">
+                <button className="btn-accent w-full" onClick={() => setShowFilters(false)}>
+                  Ver resultados
+                </button>
+              </div>
+            </div>
+          </>
         )}
 
         {/* Resultados */}

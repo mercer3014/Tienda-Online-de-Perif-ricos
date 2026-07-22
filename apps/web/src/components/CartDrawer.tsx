@@ -5,9 +5,12 @@ import { useCart } from '../store/cart';
 import { useCreateOrder, markWhatsappSent, trackEvent } from '../hooks/catalog';
 import { formatBs } from '../lib/format';
 import { ProductImg, Spinner } from './ui';
+import { useDismissable } from '../lib/useDismissable';
 
 export function CartDrawer() {
   const { items, isOpen, close, removeItem, setQuantity, clear, total } = useCart();
+  // Escape cierra el carrito y se bloquea el scroll del fondo mientras esta abierto.
+  useDismissable(isOpen, close);
   const [phone, setPhone] = useState('');
   const [error, setError] = useState<string | null>(null);
   const createOrder = useCreateOrder();

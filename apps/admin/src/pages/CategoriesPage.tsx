@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Check, X, Pencil, Ban } from 'lucide-react';
+import { Check, X, Pencil, Trash2, RotateCcw } from 'lucide-react';
 import type { CategoryNode } from '@villano/shared-types';
 import { createCategorySchema } from '@villano/shared-types';
 import { useAdminCategoryTree, useCategoryMutations } from '../hooks/admin';
@@ -106,7 +106,7 @@ function CategoryRow({ node, allNodes, depth }: { node: CategoryNode; allNodes: 
   const del = async () => {
     const ok = await confirmAction({
       title: `¿Desactivar "${node.name}"?`,
-      description: 'La categoría dejará de verse en el catálogo. Solo se puede si no tiene productos ni subcategorías activas.',
+      description: 'Dejará de mostrarse en el catálogo, pero NO se elimina: podés reactivarla después desde este mismo listado. Solo se puede desactivar si no tiene productos ni subcategorías activas.',
       confirmLabel: 'Desactivar',
       danger: true,
     });
@@ -130,19 +130,43 @@ function CategoryRow({ node, allNodes, depth }: { node: CategoryNode; allNodes: 
           </>
         ) : (
           <>
-            <span className="font-medium text-txt-primary">{node.name}</span>
+            <span className={`font-medium ${node.active ? 'text-txt-primary' : 'text-txt-faint line-through'}`}>{node.name}</span>
             {node.isPromo && <span className="rounded-full bg-neon-green/15 px-2 text-xs text-neon-green">{node.promoBadgeText ?? 'PROMO'}</span>}
+            {!node.active && <span className="badge badge-danger">Inactiva</span>}
             <span className="text-xs text-txt-faint">{node.productCount ?? 0} prod.</span>
             <div className="ml-auto flex items-center gap-2 text-xs">
-              {can('editar_categoria') && <ActionIcon icon={Pencil} label="Renombrar categoría" onClick={() => setEditing(true)} />}
-              {can('editar_categoria') && <button className="rounded px-2 py-1 text-xs text-txt-muted hover:bg-base-panel hover:text-txt-primary" onClick={togglePromo}>{node.isPromo ? 'Quitar promo' : 'Promo'}</button>}
-              {can('modificar_categoria') && (
-                <select className="rounded border border-base-border bg-base-void px-1 py-0.5 text-xs" value={node.parentId ?? ''} onChange={(e) => reparent(e.target.value)} aria-label="Mover a">
-                  <option value="">Raiz</option>
-                  {parentOptions.map((c) => <option key={c.id} value={c.id}>{c.label.trim()}</option>)}
-                </select>
+              {node.active ? (
+                <>
+                  {can('editar_categoria') && <ActionIcon icon={Pencil} label="Renombrar categoría" onClick={() => setEditing(true)} />}
+                  {can('editar_categoria') && <button className="rounded px-2 py-1 text-xs text-txt-muted hover:bg-base-panel hover:text-txt-primary" onClick={togglePromo}>{node.isPromo ? 'Quitar promo' : 'Promo'}</button>}
+                  {can('modificar_categoria') && (
+                    <select className="rounded border border-base-border bg-base-void px-1 py-0.5 text-xs" value={node.parentId ?? ''} onChange={(e) => reparent(e.target.value)} aria-label="Mover a">
+                      <option value="">Raiz</option>
+                      {parentOptions.map((c) => <option key={c.id} value={c.id}>{c.label.trim()}</option>)}
+                    </select>
+                  )}
+                  {can('eliminar_categoria') && (
+                    <ActionIcon icon={Trash2} label="Desactivar categoría" danger disabled={remove.isPending} onClick={del} />
+                  )}
+                </>
+              ) : (
+                can('editar_categoria') && (
+                  <ActionIcon
+                    icon={RotateCcw}
+                    label="Reactivar categoría"
+                    disabled={update.isPending}
+                    onClick={() =>
+                      update.mutate(
+                        { id: node.id, body: { active: true } },
+                        {
+                          onSuccess: () => toast.success('Categoria reactivada'),
+                          onError: (e) => toast.error(e instanceof Error ? e.message : 'Error'),
+                        },
+                      )
+                    }
+                  />
+                )
               )}
-              {can('eliminar_categoria') && <ActionIcon icon={Ban} label="Desactivar categoría" danger onClick={del} />}
             </div>
           </>
         )}

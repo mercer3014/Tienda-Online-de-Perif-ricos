@@ -9,6 +9,9 @@ import { formatBs } from '../lib/format';
 import { ErrorState, ProductImg, Spinner, StockBadge } from '../components/ui';
 import { usePageMeta } from '../components/Layout';
 
+// Productos ya vistos en esta sesion del SPA (dedupe de la metrica 'view').
+const viewedProducts = new Set<string>();
+
 /** Setea/actualiza una meta tag OpenGraph. */
 function setOg(property: string, content: string) {
   let tag = document.querySelector(`meta[property="${property}"]`);
@@ -33,7 +36,12 @@ export default function ProductPage() {
   // Registrar vista y seleccionar variante por defecto (primera con stock).
   useEffect(() => {
     if (!product) return;
-    trackEvent(product.id, 'view');
+    // Dedupe: una sola vista por producto por sesion del SPA (evita dobles
+    // registros por remontajes de React, p.ej. StrictMode en desarrollo).
+    if (!viewedProducts.has(product.id)) {
+      viewedProducts.add(product.id);
+      trackEvent(product.id, 'view');
+    }
     const firstAvailable = product.variants.find((v) => v.stockQuantity > 0) ?? product.variants[0];
     setActiveVariantId(firstAvailable?.id ?? null);
     setActiveImage(0);

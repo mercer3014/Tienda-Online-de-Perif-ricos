@@ -1,11 +1,16 @@
 import { AlertTriangle } from 'lucide-react';
-import { useConfirm } from '../lib/confirm';
+import { useConfirm, type ConfirmOptions } from '../lib/confirm';
+import { useDismissable } from '../lib/useDismissable';
 
 /** Modal de confirmacion global. Se monta una vez en el root (junto al Toaster). */
 export function ConfirmDialog() {
   const { open, options, close } = useConfirm();
   if (!open) return null;
+  return <ConfirmDialogInner options={options} close={close} />;
+}
 
+function ConfirmDialogInner({ options, close }: { options: ConfirmOptions; close: (v: boolean) => void }) {
+  useDismissable(true, () => close(false));
   const { title, description, confirmLabel, cancelLabel, danger } = options;
 
   return (

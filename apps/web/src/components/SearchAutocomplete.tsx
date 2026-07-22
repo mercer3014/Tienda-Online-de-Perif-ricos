@@ -23,7 +23,7 @@ export function SearchAutocomplete({
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
-    const t = setTimeout(() => setDebounced(term.trim()), 250);
+    const t = setTimeout(() => setDebounced(term.trim()), 300);
     return () => clearTimeout(t);
   }, [term]);
 

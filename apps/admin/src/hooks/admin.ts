@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type {
   CategoryNode,
   CreateCategoryInput,
+  UpdateCategoryInput,
   CreateProductInput,
   CreateUserInput,
   CreateVariantInput,
@@ -148,7 +149,7 @@ export function useCategoryMutations() {
   const invalidate = () => qc.invalidateQueries({ queryKey: ['admin-categories'] });
   return {
     create: useMutation({ mutationFn: (b: CreateCategoryInput) => apiFetch('/admin/categories', { method: 'POST', body: b }), onSuccess: invalidate }),
-    update: useMutation({ mutationFn: ({ id, body }: { id: string; body: Partial<CreateCategoryInput> }) => apiFetch(`/admin/categories/${id}`, { method: 'PATCH', body }), onSuccess: invalidate }),
+    update: useMutation({ mutationFn: ({ id, body }: { id: string; body: UpdateCategoryInput }) => apiFetch(`/admin/categories/${id}`, { method: 'PATCH', body }), onSuccess: invalidate }),
     move: useMutation({ mutationFn: ({ id, body }: { id: string; body: MoveCategoryInput }) => apiFetch(`/admin/categories/${id}/move`, { method: 'PATCH', body }), onSuccess: invalidate }),
     remove: useMutation({ mutationFn: (id: string) => apiFetch(`/admin/categories/${id}`, { method: 'DELETE' }), onSuccess: invalidate }),
   };

@@ -1,6 +1,6 @@
 import type { CreateProductInput, UpdateProductInput } from '@villano/shared-types';
 import { prisma } from '../../lib/prisma.js';
-import { notFound } from '../../lib/errors.js';
+import { conflict, notFound } from '../../lib/errors.js';
 import { writeAudit } from '../../lib/audit.js';
 import { productInclude, toDetail } from './product.serializer.js';
 import { toNumber } from '../../lib/money.js';
@@ -103,6 +103,8 @@ export async function updateProduct(id: string, input: UpdateProductInput, userI
 export async function softDeleteProduct(id: string, userId: string) {
   const existing = await prisma.product.findUnique({ where: { id } });
   if (!existing) throw notFound('Producto no encontrado');
+  // Idempotencia: no repetir auditoria si ya esta inactivo.
+  if (existing.status === 'inactivo') throw conflict('El producto ya esta desactivado');
   const updated = await prisma.product.update({
     where: { id },
     data: { status: 'inactivo' },

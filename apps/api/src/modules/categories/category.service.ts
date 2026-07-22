@@ -14,7 +14,7 @@ function buildTree(rows: Row[], counts: Map<string, number>): CategoryNode[] {
     byId.set(r.id, {
       id: r.id, name: r.name, slug: r.slug, parentId: r.parentId,
       isPromo: r.isPromo, promoBadgeText: r.promoBadgeText, displayOrder: r.displayOrder,
-      productCount: counts.get(r.id) ?? 0, children: [],
+      active: r.active, productCount: counts.get(r.id) ?? 0, children: [],
     }),
   );
   const roots: CategoryNode[] = [];
@@ -88,12 +88,13 @@ export async function updateCategory(id: string, input: UpdateCategoryInput, use
     data: {
       name: input.name, slug: input.slug, parentId: input.parentId,
       isPromo: input.isPromo, promoBadgeText: input.promoBadgeText, displayOrder: input.displayOrder,
+      active: input.active,
     },
   });
   await writeAudit({
     userId, action: 'modificar_categoria', entityType: 'category', entityId: id,
-    oldValue: { name: existing.name, slug: existing.slug, parentId: existing.parentId, isPromo: existing.isPromo },
-    newValue: { name: cat.name, slug: cat.slug, parentId: cat.parentId, isPromo: cat.isPromo },
+    oldValue: { name: existing.name, slug: existing.slug, parentId: existing.parentId, isPromo: existing.isPromo, active: existing.active },
+    newValue: { name: cat.name, slug: cat.slug, parentId: cat.parentId, isPromo: cat.isPromo, active: cat.active },
   });
   return cat;
 }
@@ -137,6 +138,8 @@ export async function softDeleteCategory(id: string, userId: string) {
     include: { _count: { select: { children: true, products: true } } },
   });
   if (!existing) throw notFound('Categoria no encontrada');
+  // Idempotencia: repetir la accion no debe duplicar auditoria ni "exitos" falsos.
+  if (!existing.active) throw conflict('La categoria ya esta desactivada');
 
   const activeChildren = await prisma.category.count({ where: { parentId: id, active: true } });
   if (activeChildren > 0) throw conflict('La categoria tiene subcategorias activas');

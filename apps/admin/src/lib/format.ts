@@ -8,4 +8,6 @@ export const formatDateTime = (iso: string): string =>
     year: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
+    // Con segundos: en auditoria distingue acciones repetidas en el mismo minuto.
+    second: '2-digit',
   });

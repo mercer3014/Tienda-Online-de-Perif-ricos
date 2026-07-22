@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, NavLink } from 'react-router-dom';
+import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import clsx from 'clsx';
 import { ShoppingBag, MapPin, Star, Menu, X } from 'lucide-react';
 import { useCart } from '../store/cart';
@@ -33,6 +33,17 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const count = useCart((s) => s.count());
   const openCart = useCart((s) => s.open);
   const { data: categories, isLoading: catLoading } = useCategoryTree();
+
+  // Estado activo de la navegacion: consciente del query param ?categoria=.
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
+  const activeCategoria = location.pathname === '/catalogo' ? searchParams.get('categoria') : null;
+  const isCatalogAll = location.pathname === '/catalogo' && !activeCategoria && !searchParams.get('search');
+  const navClass = (active: boolean) =>
+    clsx(
+      'rounded px-3 py-1.5 font-display uppercase tracking-wide transition-colors',
+      active ? 'bg-neon-purple/15 text-neon-green' : 'text-txt-muted hover:text-neon-purple-bright',
+    );
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -83,21 +94,29 @@ export function Layout({ children }: { children: React.ReactNode }) {
         {/* Nav categorias desktop */}
         <nav className="hidden border-t border-base-border/60 lg:block">
           <div className="mx-auto flex max-w-7xl items-center gap-1 px-4 py-2 text-sm">
-            <NavLink to="/catalogo" className={({ isActive }) => clsx('rounded px-3 py-1.5 font-display uppercase tracking-wide', isActive ? 'text-neon-green' : 'text-txt-muted hover:text-neon-purple-bright')}>
+            <Link to="/catalogo" className={navClass(isCatalogAll)} aria-current={isCatalogAll ? 'page' : undefined}>
               Todo
-            </NavLink>
+            </Link>
             {catLoading && <Spinner className="h-4 w-4" />}
-            {categories?.map((c) => (
-              <NavLink
-                key={c.id}
-                to={`/catalogo?categoria=${c.slug}`}
-                className={({ isActive }) => clsx('inline-flex items-center gap-1 rounded px-3 py-1.5 font-display uppercase tracking-wide', isActive ? 'text-neon-green' : 'text-txt-muted hover:text-neon-purple-bright')}
-              >
-                {c.name}
-                {c.isPromo && <Star className="h-3.5 w-3.5 text-neon-green fill-neon-green" />}
-              </NavLink>
-            ))}
-            <Link to="/ubicacion" className="ml-auto inline-flex items-center gap-1.5 rounded px-3 py-1.5 font-display uppercase tracking-wide text-txt-muted hover:text-neon-purple-bright">
+            {categories?.map((c) => {
+              const active = activeCategoria === c.slug;
+              return (
+                <Link
+                  key={c.id}
+                  to={`/catalogo?categoria=${c.slug}`}
+                  className={clsx('inline-flex items-center gap-1', navClass(active))}
+                  aria-current={active ? 'page' : undefined}
+                >
+                  {c.name}
+                  {c.isPromo && <Star className="h-3.5 w-3.5 text-neon-green fill-neon-green" />}
+                </Link>
+              );
+            })}
+            <Link
+              to="/ubicacion"
+              className={clsx('ml-auto inline-flex items-center gap-1.5', navClass(location.pathname === '/ubicacion'))}
+              aria-current={location.pathname === '/ubicacion' ? 'page' : undefined}
+            >
               <MapPin className="h-4 w-4 text-neon-purple-bright" /> Ubicacion
             </Link>
           </div>
@@ -109,15 +128,15 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <div className="border-b border-base-border bg-base-graphite lg:hidden">
           <div className="flex flex-col gap-1 p-4">
             <div className="mb-1"><StoreStatusPill /></div>
-            <MobileLink to="/catalogo" onClick={() => setMenuOpen(false)}>Todo el catalogo</MobileLink>
+            <MobileLink to="/catalogo" active={isCatalogAll} onClick={() => setMenuOpen(false)}>Todo el catalogo</MobileLink>
             {categories?.map((c) => (
-              <MobileLink key={c.id} to={`/catalogo?categoria=${c.slug}`} onClick={() => setMenuOpen(false)}>
+              <MobileLink key={c.id} to={`/catalogo?categoria=${c.slug}`} active={activeCategoria === c.slug} onClick={() => setMenuOpen(false)}>
                 <span className="inline-flex items-center gap-1">
                   {c.name} {c.isPromo && <Star className="h-3.5 w-3.5 text-neon-green fill-neon-green" />}
                 </span>
               </MobileLink>
             ))}
-            <MobileLink to="/ubicacion" onClick={() => setMenuOpen(false)}>
+            <MobileLink to="/ubicacion" active={location.pathname === '/ubicacion'} onClick={() => setMenuOpen(false)}>
               <span className="inline-flex items-center gap-1.5">
                 <MapPin className="h-4 w-4 text-neon-purple-bright" /> Ubicacion y horarios
               </span>
@@ -141,17 +160,19 @@ export function Layout({ children }: { children: React.ReactNode }) {
   );
 }
 
-function MobileLink({ to, children, onClick }: { to: string; children: React.ReactNode; onClick: () => void }) {
+function MobileLink({ to, active, children, onClick }: { to: string; active: boolean; children: React.ReactNode; onClick: () => void }) {
   return (
-    <NavLink
+    <Link
       to={to}
       onClick={onClick}
-      className={({ isActive }) =>
-        clsx('rounded-md px-3 py-2.5 font-display uppercase tracking-wide', isActive ? 'bg-neon-purple/15 text-neon-green' : 'text-txt-primary hover:bg-base-panel')
-      }
+      aria-current={active ? 'page' : undefined}
+      className={clsx(
+        'rounded-md px-3 py-2.5 font-display uppercase tracking-wide',
+        active ? 'bg-neon-purple/15 text-neon-green' : 'text-txt-primary hover:bg-base-panel',
+      )}
     >
       {children}
-    </NavLink>
+    </Link>
   );
 }
 

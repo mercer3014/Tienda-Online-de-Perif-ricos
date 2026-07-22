@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Pencil, Ban } from 'lucide-react';
+import { Pencil, Trash2 } from 'lucide-react';
 import { createUserSchema, updateUserSchema } from '@villano/shared-types';
 import { useRoles, useUsers, useUserMutations, type AdminUser } from '../hooks/admin';
 import { formatDateTime } from '../lib/format';
@@ -56,7 +56,7 @@ export default function UsersPage() {
                     <td className="p-2 text-right">
                       <div className="flex items-center justify-end gap-1">
                         <ActionIcon icon={Pencil} label="Editar usuario" onClick={() => setEditing(u)} />
-                        {u.active && <ActionIcon icon={Ban} label="Desactivar usuario" danger onClick={() => deactivate(u)} />}
+                        {u.active && <ActionIcon icon={Trash2} label="Desactivar usuario" danger disabled={remove.isPending} onClick={() => deactivate(u)} />}
                       </div>
                     </td>
                   </tr>

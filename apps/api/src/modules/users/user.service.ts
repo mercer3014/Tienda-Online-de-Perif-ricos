@@ -68,6 +68,8 @@ export async function deactivateUser(id: string, actorId: string) {
   if (id === actorId) throw badRequest('No puedes desactivar tu propio usuario');
   const existing = await prisma.user.findUnique({ where: { id } });
   if (!existing) throw notFound('Usuario no encontrado');
+  // Idempotencia: no repetir auditoria si ya esta inactivo.
+  if (!existing.active) throw badRequest('El usuario ya esta desactivado');
   const user = await prisma.user.update({ where: { id }, data: { active: false }, select: safeSelect });
   await writeAudit({ userId: actorId, action: 'gestionar_usuarios', entityType: 'user', entityId: id, oldValue: { active: true }, newValue: { active: false } });
   return user;

@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
-import { ArrowUpDown, ArrowUp, ArrowDown, Pencil, Ban, Search } from 'lucide-react';
+import { ArrowUpDown, ArrowUp, ArrowDown, Pencil, Trash2, Search } from 'lucide-react';
 import type { ProductDetailDTO, StockStatus } from '@villano/shared-types';
 import { useAdminProducts, useProductMutations } from '../hooks/admin';
 import { useAuth } from '../store/auth';
@@ -66,7 +66,7 @@ export default function ProductsPage() {
   const onDelete = async (p: ProductDetailDTO) => {
     const ok = await confirmAction({
       title: `¿Desactivar "${p.name}"?`,
-      description: 'El producto dejará de verse en el catálogo público. Podés reactivarlo editándolo.',
+      description: 'Dejará de mostrarse en el catálogo público, pero NO se elimina de la base: podés reactivarlo después cambiando su estado a "Activo".',
       confirmLabel: 'Desactivar',
       danger: true,
     });
@@ -187,7 +187,7 @@ export default function ProductsPage() {
                     <div className="flex items-center justify-end gap-1">
                       <ActionIcon icon={Pencil} label="Editar producto" onClick={() => setEditing(p.id)} />
                       {can('eliminar_producto') && p.status === 'activo' && (
-                        <ActionIcon icon={Ban} label="Desactivar producto" danger onClick={() => onDelete(p)} />
+                        <ActionIcon icon={Trash2} label="Desactivar producto" danger disabled={remove.isPending} onClick={() => onDelete(p)} />
                       )}
                     </div>
                   </td>
