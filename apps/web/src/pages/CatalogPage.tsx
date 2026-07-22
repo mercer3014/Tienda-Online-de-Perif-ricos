@@ -40,12 +40,20 @@ export default function CatalogPage() {
 
   const { data, isLoading, isError, isFetching, refetch } = useProducts(apiQuery);
 
-  // Actualiza un parametro y resetea a pagina 1.
+  // Actualiza un filtro y resetea a pagina 1 (cambiar un filtro cambia los resultados).
   const update = (mut: (p: URLSearchParams) => void) => {
     const next = new URLSearchParams(params);
     mut(next);
     next.set('page', '1');
     setParams(next);
+  };
+
+  // Navegacion de paginas: cambia SOLO el numero de pagina (sin resetear filtros ni volver a 1).
+  const goToPage = (target: number) => {
+    const next = new URLSearchParams(params);
+    next.set('page', String(target));
+    setParams(next);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const toggleAttr = (valueId: string) =>
@@ -183,9 +191,9 @@ export default function CatalogPage() {
               {data && data.totalPages > 1 && (
                 <div className="mt-6 flex items-center justify-center gap-2">
                   <button
-                    className="btn-primary py-1.5 text-sm disabled:opacity-40"
+                    className="btn-secondary py-1.5 text-sm disabled:opacity-40"
                     disabled={page <= 1}
-                    onClick={() => update((p) => p.set('page', String(page - 1)))}
+                    onClick={() => goToPage(page - 1)}
                   >
                     ← Anterior
                   </button>
@@ -193,9 +201,9 @@ export default function CatalogPage() {
                     Pagina {data.page} de {data.totalPages}
                   </span>
                   <button
-                    className="btn-primary py-1.5 text-sm disabled:opacity-40"
+                    className="btn-secondary py-1.5 text-sm disabled:opacity-40"
                     disabled={page >= data.totalPages}
-                    onClick={() => update((p) => p.set('page', String(page + 1)))}
+                    onClick={() => goToPage(page + 1)}
                   >
                     Siguiente →
                   </button>
