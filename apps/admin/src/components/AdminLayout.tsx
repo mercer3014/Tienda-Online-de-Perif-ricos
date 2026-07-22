@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import clsx from 'clsx';
 import {
@@ -12,10 +12,13 @@ import {
   Users,
   LogOut,
   Menu,
+  ChevronsLeft,
+  ChevronsRight,
 } from 'lucide-react';
 import type { PermissionKey } from '@villano/shared-types';
 import { useAuth } from '../store/auth';
 import { ThemeToggle } from './ThemeToggle';
+import { confirmAction } from '../lib/confirm';
 
 interface NavItem {
   to: string;
@@ -35,80 +38,143 @@ const NAV: NavItem[] = [
   { to: '/usuarios', label: 'Usuarios', icon: Users, anyOf: ['gestionar_usuarios'] },
 ];
 
+const STORAGE_KEY = 'villano_admin_sidebar';
+
 export function AdminLayout({ children }: { children: React.ReactNode }) {
   const { user, logout, can } = useAuth();
   const navigate = useNavigate();
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(false); // drawer mobile
+  const [collapsed, setCollapsed] = useState(() => localStorage.getItem(STORAGE_KEY) === 'collapsed');
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, collapsed ? 'collapsed' : 'expanded');
+  }, [collapsed]);
 
   const visibleNav = NAV.filter((n) => n.anyOf.some((p) => can(p)));
 
-  const sidebar = (
-    <nav className="flex h-full flex-col gap-1 p-3">
-      <div className="mb-4 flex items-center justify-between px-2 pt-2">
-        <p className="font-display text-lg font-bold tracking-wider text-neon-purple-bright">
-          VILLANO<span className="text-neon-green">·</span>ADMIN
-        </p>
-      </div>
-      {visibleNav.map((n) => {
-        const IconComponent = n.icon;
-        return (
-          <NavLink
-            key={n.to}
-            to={n.to}
-            end={n.to === '/'}
-            onClick={() => setOpen(false)}
-            className={({ isActive }) =>
-              clsx(
-                'flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors',
-                isActive ? 'bg-neon-purple/15 text-neon-green shadow-neon-purple/40' : 'text-txt-muted hover:bg-base-panel hover:text-txt-primary',
-              )
-            }
-          >
-            <IconComponent className="h-4 w-4 shrink-0" />
-            {n.label}
-          </NavLink>
-        );
-      })}
-      <div className="mt-auto border-t border-base-border pt-3 space-y-2">
-        <div className="px-2">
-          <ThemeToggle className="w-full justify-start" />
-        </div>
-        <div className="px-3 py-1 text-xs">
-          <p className="font-semibold text-txt-primary">{user?.name}</p>
-          <p className="text-txt-faint">{user?.role.name}</p>
-        </div>
+  const handleLogout = async () => {
+    const ok = await confirmAction({
+      title: '¿Cerrar sesión?',
+      description: 'Vas a salir del panel administrativo.',
+      confirmLabel: 'Cerrar sesión',
+      danger: true,
+    });
+    if (ok) {
+      logout();
+      navigate('/login');
+    }
+  };
+
+  /** `mini` = colapsado (solo iconos). Solo aplica en desktop. */
+  const SidebarContent = ({ mini }: { mini: boolean }) => (
+    <div className="flex h-full flex-col">
+      {/* Cabecera: logo + boton colapsar (solo desktop) */}
+      <div className={clsx('flex items-center px-3 py-4', mini ? 'justify-center' : 'justify-between')}>
+        {!mini && (
+          <p className="font-display text-lg font-bold tracking-wider text-neon-purple-bright">
+            VILLANO<span className="text-neon-green">·</span>ADMIN
+          </p>
+        )}
         <button
-          onClick={() => { logout(); navigate('/login'); }}
-          className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm text-status-out hover:bg-status-out/10 transition-colors"
+          onClick={() => setCollapsed((c) => !c)}
+          className="hidden rounded-md p-1.5 text-txt-muted hover:bg-base-panel hover:text-txt-primary lg:block"
+          aria-label={mini ? 'Expandir menú' : 'Colapsar menú'}
+          title={mini ? 'Expandir menú' : 'Colapsar menú'}
         >
-          <LogOut className="h-4 w-4 shrink-0" />
-          Cerrar sesion
+          {mini ? <ChevronsRight className="h-4 w-4" /> : <ChevronsLeft className="h-4 w-4" />}
         </button>
       </div>
-    </nav>
+
+      {/* Navegacion (crece y hace scroll si no entra) */}
+      <nav className="flex-1 space-y-1 overflow-y-auto px-2">
+        {visibleNav.map((n) => {
+          const Icon = n.icon;
+          return (
+            <NavLink
+              key={n.to}
+              to={n.to}
+              end={n.to === '/'}
+              onClick={() => setOpen(false)}
+              title={mini ? n.label : undefined}
+              aria-label={n.label}
+              className={({ isActive }) =>
+                clsx(
+                  'flex items-center rounded-md py-2.5 text-sm font-medium transition-colors',
+                  mini ? 'justify-center px-2' : 'gap-3 px-3',
+                  isActive
+                    ? 'bg-neon-purple/15 text-neon-green'
+                    : 'text-txt-muted hover:bg-base-panel hover:text-txt-primary',
+                )
+              }
+            >
+              <Icon className="h-5 w-5 shrink-0" />
+              {!mini && <span className="truncate">{n.label}</span>}
+            </NavLink>
+          );
+        })}
+      </nav>
+
+      {/* Footer anclado abajo del sidebar */}
+      <div className="mt-2 border-t border-base-border p-2">
+        <div className={clsx('mb-2', mini && '[&_span]:hidden')}>
+          <ThemeToggle className={mini ? 'w-full justify-center' : 'w-full justify-start'} />
+        </div>
+        {mini ? (
+          <div
+            className="mx-auto mb-1 flex h-8 w-8 items-center justify-center rounded-full bg-neon-purple/15 text-xs font-bold text-neon-purple-bright"
+            title={`${user?.name} · ${user?.role.name}`}
+          >
+            {user?.name?.slice(0, 2).toUpperCase()}
+          </div>
+        ) : (
+          <div className="px-2 py-1 text-xs">
+            <p className="truncate font-semibold text-txt-primary">{user?.name}</p>
+            <p className="truncate text-txt-faint">{user?.role.name}</p>
+          </div>
+        )}
+        <button
+          onClick={handleLogout}
+          title="Cerrar sesión"
+          aria-label="Cerrar sesión"
+          className={clsx(
+            'flex w-full items-center rounded-md py-2 text-sm text-status-out transition-colors hover:bg-status-out/10',
+            mini ? 'justify-center px-2' : 'gap-2 px-3',
+          )}
+        >
+          <LogOut className="h-4 w-4 shrink-0" />
+          {!mini && 'Cerrar sesión'}
+        </button>
+      </div>
+    </div>
   );
 
   return (
     <div className="flex min-h-screen">
-      {/* Sidebar desktop */}
-      <aside className="hidden w-60 shrink-0 border-r border-base-border bg-base-graphite lg:block">
-        {sidebar}
+      {/* Sidebar desktop (sticky, altura de viewport, no se estira con el contenido) */}
+      <aside
+        className={clsx(
+          'sticky top-0 hidden h-screen shrink-0 border-r border-base-border bg-base-graphite transition-[width] duration-200 lg:block',
+          collapsed ? 'w-16' : 'w-60',
+        )}
+      >
+        <SidebarContent mini={collapsed} />
       </aside>
 
-      {/* Sidebar mobile */}
+      {/* Sidebar mobile (drawer, siempre expandido) */}
       {open && (
         <>
           <div className="fixed inset-0 z-40 bg-black/70 lg:hidden" onClick={() => setOpen(false)} />
           <aside className="fixed left-0 top-0 z-50 h-full w-64 border-r border-base-border bg-base-graphite lg:hidden">
-            {sidebar}
+            <SidebarContent mini={false} />
           </aside>
         </>
       )}
 
       <div className="flex min-w-0 flex-1 flex-col">
+        {/* Barra superior mobile */}
         <header className="sticky top-0 z-30 flex items-center justify-between gap-3 border-b border-base-border bg-base-black/85 px-4 py-3 backdrop-blur lg:hidden">
           <div className="flex items-center gap-3">
-            <button onClick={() => setOpen(true)} aria-label="Abrir menu" className="text-txt-muted p-1 rounded hover:text-neon-purple">
+            <button onClick={() => setOpen(true)} aria-label="Abrir menú" className="rounded p-1 text-txt-muted hover:text-neon-purple">
               <Menu className="h-5 w-5" />
             </button>
             <span className="font-display font-bold text-neon-purple-bright">VILLANO·ADMIN</span>

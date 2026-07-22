@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { Phone, ChevronLeft, ChevronRight } from 'lucide-react';
-import { OrderStatus, ORDER_STATUS_LABEL, type OrderStatus as OrderStatusT } from '@villano/shared-types';
+import { OrderStatus, ORDER_STATUS_LABEL, type OrderStatus as OrderStatusT, type OrderDTO } from '@villano/shared-types';
 import { useOrders, useOrderStatusMutation } from '../hooks/admin';
 import { useAuth } from '../store/auth';
 import { formatBs, formatDateTime } from '../lib/format';
 import { toast } from '../lib/toast';
+import { confirmAction } from '../lib/confirm';
 import { EmptyState, ErrorState, PageLoader } from '../components/shared';
 
 const STATUSES = OrderStatus.options;
@@ -20,15 +21,24 @@ export default function OrdersPage() {
   const [filter, setFilter] = useState('');
   const [page, setPage] = useState(1);
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [nonce, setNonce] = useState(0); // fuerza reset del select si se cancela
   const query = `page=${page}&pageSize=15${filter ? `&status=${filter}` : ''}`;
   const { data, isLoading, isError, refetch } = useOrders(query);
   const changeStatus = useOrderStatusMutation();
 
-  const setStatus = (id: string, status: OrderStatusT) =>
-    changeStatus.mutate({ id, status }, {
+  const setStatus = async (o: OrderDTO, status: OrderStatusT) => {
+    if (status === o.status) return;
+    const ok = await confirmAction({
+      title: `¿Cambiar el estado del pedido ${o.orderNumber}?`,
+      description: `${ORDER_STATUS_LABEL[o.status]} → ${ORDER_STATUS_LABEL[status]}.`,
+      confirmLabel: 'Cambiar estado',
+    });
+    if (!ok) { setNonce((n) => n + 1); return; }
+    changeStatus.mutate({ id: o.id, status }, {
       onSuccess: () => toast.success('Estado actualizado'),
       onError: (e) => toast.error(e instanceof Error ? e.message : 'Error'),
     });
+  };
 
   return (
     <div>
@@ -56,7 +66,7 @@ export default function OrdersPage() {
                     {o.customerPhone && <span className="inline-flex items-center gap-1 text-xs text-txt-muted"><Phone className="h-3 w-3" /> {o.customerPhone}</span>}
                     <span className="ml-auto font-display font-bold text-neon-green">{formatBs(o.totalAmount)}</span>
                     {can('cambiar_estado_pedido') ? (
-                      <select className={`input w-36 py-1 text-sm ${statusColor[o.status]}`} value={o.status} onChange={(e) => setStatus(o.id, e.target.value as OrderStatusT)}>
+                      <select key={`${o.status}-${nonce}`} className={`input w-36 py-1 text-sm ${statusColor[o.status]}`} value={o.status} onChange={(e) => setStatus(o, e.target.value as OrderStatusT)}>
                         {STATUSES.map((s) => <option key={s} value={s}>{ORDER_STATUS_LABEL[s]}</option>)}
                       </select>
                     ) : (

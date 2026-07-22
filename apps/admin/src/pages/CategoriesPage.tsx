@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { Check, X } from 'lucide-react';
+import { Check, X, Pencil, Ban } from 'lucide-react';
 import type { CategoryNode } from '@villano/shared-types';
 import { createCategorySchema } from '@villano/shared-types';
 import { useAdminCategoryTree, useCategoryMutations } from '../hooks/admin';
 import { useAuth } from '../store/auth';
 import { toast } from '../lib/toast';
-import { ErrorState, Field, PageLoader, Spinner } from '../components/shared';
+import { ActionIcon, ErrorState, Field, PageLoader, Spinner } from '../components/shared';
+import { confirmAction } from '../lib/confirm';
 
 const slugify = (s: string) =>
   s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
@@ -102,8 +103,14 @@ function CategoryRow({ node, allNodes, depth }: { node: CategoryNode; allNodes: 
       onSuccess: () => toast.success('Actualizada'),
     });
 
-  const del = () => {
-    if (!confirm(`Desactivar "${node.name}"?`)) return;
+  const del = async () => {
+    const ok = await confirmAction({
+      title: `¿Desactivar "${node.name}"?`,
+      description: 'La categoría dejará de verse en el catálogo. Solo se puede si no tiene productos ni subcategorías activas.',
+      confirmLabel: 'Desactivar',
+      danger: true,
+    });
+    if (!ok) return;
     remove.mutate(node.id, {
       onSuccess: () => toast.success('Categoria desactivada'),
       onError: (e) => toast.error(e instanceof Error ? e.message : 'No se pudo (tiene productos/subcategorias)'),
@@ -127,15 +134,15 @@ function CategoryRow({ node, allNodes, depth }: { node: CategoryNode; allNodes: 
             {node.isPromo && <span className="rounded-full bg-neon-green/15 px-2 text-xs text-neon-green">{node.promoBadgeText ?? 'PROMO'}</span>}
             <span className="text-xs text-txt-faint">{node.productCount ?? 0} prod.</span>
             <div className="ml-auto flex items-center gap-2 text-xs">
-              {can('editar_categoria') && <button className="text-neon-purple-bright hover:underline" onClick={() => setEditing(true)}>Renombrar</button>}
-              {can('editar_categoria') && <button className="text-txt-muted hover:underline" onClick={togglePromo}>{node.isPromo ? 'Quitar promo' : 'Promo'}</button>}
+              {can('editar_categoria') && <ActionIcon icon={Pencil} label="Renombrar categoría" onClick={() => setEditing(true)} />}
+              {can('editar_categoria') && <button className="rounded px-2 py-1 text-xs text-txt-muted hover:bg-base-panel hover:text-txt-primary" onClick={togglePromo}>{node.isPromo ? 'Quitar promo' : 'Promo'}</button>}
               {can('modificar_categoria') && (
                 <select className="rounded border border-base-border bg-base-void px-1 py-0.5 text-xs" value={node.parentId ?? ''} onChange={(e) => reparent(e.target.value)} aria-label="Mover a">
                   <option value="">Raiz</option>
                   {parentOptions.map((c) => <option key={c.id} value={c.id}>{c.label.trim()}</option>)}
                 </select>
               )}
-              {can('eliminar_categoria') && <button className="text-status-out hover:underline" onClick={del}>Eliminar</button>}
+              {can('eliminar_categoria') && <ActionIcon icon={Ban} label="Desactivar categoría" danger onClick={del} />}
             </div>
           </>
         )}

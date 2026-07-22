@@ -5,6 +5,7 @@ import type { PermissionKey } from '@villano/shared-types';
 import { useAuth } from './store/auth';
 import { AdminLayout } from './components/AdminLayout';
 import { PageLoader, Toaster } from './components/shared';
+import { ConfirmDialog } from './components/ConfirmDialog';
 import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import ProductsPage from './pages/ProductsPage';
@@ -56,6 +57,7 @@ export default function App() {
         </Routes>
       </BrowserRouter>
       <Toaster />
+      <ConfirmDialog />
     </QueryClientProvider>
   );
 }

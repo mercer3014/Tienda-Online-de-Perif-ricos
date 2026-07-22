@@ -1,9 +1,11 @@
 import { useState } from 'react';
+import { Pencil, Ban } from 'lucide-react';
 import { createUserSchema, updateUserSchema } from '@villano/shared-types';
 import { useRoles, useUsers, useUserMutations, type AdminUser } from '../hooks/admin';
 import { formatDateTime } from '../lib/format';
 import { toast } from '../lib/toast';
-import { EmptyState, ErrorState, Field, Modal, PageLoader, Spinner } from '../components/shared';
+import { confirmAction } from '../lib/confirm';
+import { ActionIcon, EmptyState, ErrorState, Field, Modal, PageLoader, Spinner } from '../components/shared';
 
 export default function UsersPage() {
   const { data: users, isLoading, isError, refetch } = useUsers();
@@ -11,8 +13,14 @@ export default function UsersPage() {
   const { remove } = useUserMutations();
   const [editing, setEditing] = useState<AdminUser | null | undefined>(undefined);
 
-  const deactivate = (u: AdminUser) => {
-    if (!confirm(`Desactivar a ${u.name}?`)) return;
+  const deactivate = async (u: AdminUser) => {
+    const ok = await confirmAction({
+      title: `¿Desactivar a ${u.name}?`,
+      description: 'El usuario no podrá iniciar sesión en el panel. Podés reactivarlo editándolo.',
+      confirmLabel: 'Desactivar',
+      danger: true,
+    });
+    if (!ok) return;
     remove.mutate(u.id, {
       onSuccess: () => toast.success('Usuario desactivado'),
       onError: (e) => toast.error(e instanceof Error ? e.message : 'Error'),
@@ -34,7 +42,7 @@ export default function UsersPage() {
             <table className="w-full min-w-[560px] text-sm">
               <thead>
                 <tr className="border-b border-base-border text-left text-xs uppercase tracking-wide text-txt-faint">
-                  <th className="p-2">Nombre</th><th className="p-2">Email</th><th className="p-2">Rol</th><th className="p-2">Estado</th><th className="p-2">Creado</th><th className="p-2"></th>
+                  <th className="p-2">Nombre</th><th className="p-2">Email</th><th className="p-2">Rol</th><th className="p-2">Estado</th><th className="p-2">Creado</th><th className="p-2 text-right">Acciones</th>
                 </tr>
               </thead>
               <tbody>
@@ -46,8 +54,10 @@ export default function UsersPage() {
                     <td className="p-2"><span className={u.active ? 'badge badge-success' : 'badge badge-danger'}>{u.active ? 'Activo' : 'Inactivo'}</span></td>
                     <td className="p-2 text-xs text-txt-faint">{formatDateTime(u.createdAt)}</td>
                     <td className="p-2 text-right">
-                      <button className="text-neon-purple-bright hover:underline" onClick={() => setEditing(u)}>Editar</button>
-                      {u.active && <button className="ml-3 text-status-out hover:underline" onClick={() => deactivate(u)}>Desactivar</button>}
+                      <div className="flex items-center justify-end gap-1">
+                        <ActionIcon icon={Pencil} label="Editar usuario" onClick={() => setEditing(u)} />
+                        {u.active && <ActionIcon icon={Ban} label="Desactivar usuario" danger onClick={() => deactivate(u)} />}
+                      </div>
                     </td>
                   </tr>
                 ))}

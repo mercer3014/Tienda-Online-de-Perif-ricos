@@ -23,6 +23,13 @@ export interface AttributeDTO {
   name: string;
   values: { id: string; value: string }[];
 }
+export interface UploadedImage {
+  id: string;
+  urlWebp: string;
+  isPrimary: boolean;
+  displayOrder: number;
+  compression: { originalBytes: number; webpBytes: number; savedPct: number };
+}
 export interface RoleMatrix {
   id: string;
   name: string;
@@ -114,7 +121,7 @@ export function useImageMutations(productId: string | null) {
       mutationFn: ({ id, file }: { id: string; file: File }) => {
         const fd = new FormData();
         fd.append('image', file);
-        return apiUpload(`/admin/products/${id}/images`, fd);
+        return apiUpload<UploadedImage>(`/admin/products/${id}/images`, fd);
       },
       onSuccess: invalidate,
     }),

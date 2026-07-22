@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useRoles, useRolePermissionsMutation, type RoleMatrix } from '../hooks/admin';
 import { toast } from '../lib/toast';
+import { confirmAction } from '../lib/confirm';
 import { ErrorState, PageLoader, Spinner } from '../components/shared';
 
 export default function RolesPage() {
@@ -30,7 +31,13 @@ export default function RolesPage() {
   const isDirty = (role: RoleMatrix) =>
     role.permissions.some((p) => draft[role.id]?.[p.permissionId] !== p.allowed);
 
-  const saveRole = (role: RoleMatrix) => {
+  const saveRole = async (role: RoleMatrix) => {
+    const ok = await confirmAction({
+      title: `¿Guardar permisos de "${role.name}"?`,
+      description: 'Los cambios se aplican de inmediato y afectan lo que ese rol puede hacer en el sistema.',
+      confirmLabel: 'Guardar permisos',
+    });
+    if (!ok) return;
     const entries = role.permissions.map((p) => ({ permissionId: p.permissionId, allowed: draft[role.id]?.[p.permissionId] ?? false }));
     save.mutate({ id: role.id, body: { entries } }, {
       onSuccess: () => toast.success(`Permisos de "${role.name}" actualizados`),

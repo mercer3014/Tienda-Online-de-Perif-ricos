@@ -27,8 +27,9 @@ export async function processAndStoreImage(
   const fileName = `${productId}-${randomUUID()}.webp`;
   const absPath = path.join(PRODUCTS_DIR, fileName);
 
+  let webp: Buffer;
   try {
-    const webp = await sharp(file.buffer)
+    webp = await sharp(file.buffer)
       .rotate() // respeta orientacion EXIF
       .resize({ width: 1200, height: 1200, fit: 'inside', withoutEnlargement: true })
       .webp({ quality: 82 })
@@ -50,7 +51,12 @@ export async function processAndStoreImage(
   });
 
   await writeAudit({ userId, action: 'gestionar_imagenes', entityType: 'product', entityId: productId, newValue: { added: urlWebp } });
-  return image;
+
+  // Datos de compresion para mostrar el ahorro real al usuario.
+  const originalBytes = file.buffer.length;
+  const webpBytes = webp.length;
+  const savedPct = originalBytes > 0 ? Math.round((1 - webpBytes / originalBytes) * 100) : 0;
+  return { ...image, compression: { originalBytes, webpBytes, savedPct } };
 }
 
 export async function setPrimaryImage(imageId: string, userId: string) {

@@ -1,12 +1,13 @@
-import { useEffect, useState, type FormEvent } from 'react';
-import { Link, NavLink, useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link, NavLink } from 'react-router-dom';
 import clsx from 'clsx';
-import { ShoppingBag, MapPin, Star, Search, Menu, X } from 'lucide-react';
+import { ShoppingBag, MapPin, Star, Menu, X } from 'lucide-react';
 import { useCart } from '../store/cart';
 import { useCategoryTree, useStoreStatus } from '../hooks/catalog';
 import { CartDrawer } from './CartDrawer';
 import { Spinner } from './ui';
 import { ThemeToggle } from './ThemeToggle';
+import { SearchAutocomplete } from './SearchAutocomplete';
 
 function StoreStatusPill() {
   const { data, isLoading } = useStoreStatus();
@@ -28,19 +29,10 @@ function StoreStatusPill() {
 }
 
 export function Layout({ children }: { children: React.ReactNode }) {
-  const navigate = useNavigate();
-  const [search, setSearch] = useState('');
   const [menuOpen, setMenuOpen] = useState(false);
   const count = useCart((s) => s.count());
   const openCart = useCart((s) => s.open);
   const { data: categories, isLoading: catLoading } = useCategoryTree();
-
-  const onSearch = (e: FormEvent) => {
-    e.preventDefault();
-    const q = search.trim();
-    navigate(q ? `/catalogo?search=${encodeURIComponent(q)}` : '/catalogo');
-    setMenuOpen(false);
-  };
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -59,19 +51,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
             VILLANO<span className="text-neon-green">·</span>GAMER
           </Link>
 
-          <form onSubmit={onSearch} className="ml-auto hidden flex-1 max-w-md sm:block">
-            <div className="relative">
-              <input
-                type="search"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Buscar mouse, teclados, componentes…"
-                className="w-full rounded-md border border-base-border bg-base-void pl-9 pr-3 py-2 text-sm text-txt-primary placeholder:text-txt-faint focus:border-neon-purple"
-                aria-label="Buscar productos"
-              />
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-txt-faint" />
-            </div>
-          </form>
+          <div className="ml-auto hidden max-w-md flex-1 sm:block">
+            <SearchAutocomplete />
+          </div>
 
           <div className="ml-auto flex items-center gap-3 sm:ml-2">
             <div className="hidden md:block">
@@ -94,19 +76,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
         </div>
 
         {/* Buscador mobile */}
-        <form onSubmit={onSearch} className="px-4 pb-3 sm:hidden">
-          <div className="relative">
-            <input
-              type="search"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar…"
-              className="w-full rounded-md border border-base-border bg-base-void pl-9 pr-3 py-2 text-sm text-txt-primary placeholder:text-txt-faint focus:border-neon-purple"
-              aria-label="Buscar productos"
-            />
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-txt-faint" />
-          </div>
-        </form>
+        <div className="px-4 pb-3 sm:hidden">
+          <SearchAutocomplete placeholder="Buscar…" onNavigate={() => setMenuOpen(false)} />
+        </div>
 
         {/* Nav categorias desktop */}
         <nav className="hidden border-t border-base-border/60 lg:block">
