@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import clsx from 'clsx';
+import { AlertTriangle, PackageSearch } from 'lucide-react';
 import type { StockStatus } from '@villano/shared-types';
 import { STOCK_STATUS_LABEL } from '@villano/shared-types';
 import { assetUrl } from '../lib/api';
@@ -45,7 +46,7 @@ export function StockBadge({ status, className }: { status: StockStatus; classNa
 export function ErrorState({ message, onRetry }: { message: string; onRetry?: () => void }) {
   return (
     <div className="card mx-auto max-w-md p-8 text-center" role="alert">
-      <div className="mb-2 text-4xl">⚠️</div>
+      <AlertTriangle className="mx-auto mb-2 h-10 w-10 text-status-out" aria-hidden />
       <p className="mb-4 text-txt-muted">{message}</p>
       {onRetry && (
         <button className="btn-primary" onClick={onRetry}>
@@ -56,12 +57,25 @@ export function ErrorState({ message, onRetry }: { message: string; onRetry?: ()
   );
 }
 
-export function EmptyState({ title, hint }: { title: string; hint?: string }) {
+export function EmptyState({
+  title,
+  hint,
+  action,
+}: {
+  title: string;
+  hint?: string;
+  action?: { label: string; onClick: () => void };
+}) {
   return (
     <div className="card mx-auto max-w-md p-10 text-center">
-      <div className="mb-3 text-5xl opacity-60">🕹️</div>
+      <PackageSearch className="mx-auto mb-3 h-12 w-12 text-txt-faint opacity-60" aria-hidden />
       <h3 className="mb-1 text-lg text-txt-primary">{title}</h3>
       {hint && <p className="text-sm text-txt-muted">{hint}</p>}
+      {action && (
+        <button className="btn-primary mt-4" onClick={action.onClick}>
+          {action.label}
+        </button>
+      )}
     </div>
   );
 }

@@ -60,7 +60,7 @@ export function CartDrawer() {
         {items.length === 0 ? (
           <div className="flex flex-1 flex-col items-center justify-center gap-3 p-8 text-center">
             <ShoppingBag className="h-16 w-16 text-txt-faint opacity-40" />
-            <p className="text-txt-muted">Tu carrito esta vacio.</p>
+            <p className="text-txt-muted">Tu carrito está vacío.</p>
             <Link to="/catalogo" onClick={close} className="btn-primary">
               Ver catalogo
             </Link>
@@ -98,7 +98,7 @@ export function CartDrawer() {
 
             <div className="border-t border-base-border p-4">
               <label className="mb-1 block text-xs text-txt-muted" htmlFor="phone">
-                Tu telefono (opcional)
+                Tu teléfono (opcional)
               </label>
               <input
                 id="phone"

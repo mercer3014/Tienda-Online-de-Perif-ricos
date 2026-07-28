@@ -38,7 +38,7 @@ export async function apiFetch<T>(path: string, options: RequestOptions = {}): P
       signal: options.signal,
     });
   } catch {
-    throw new ApiRequestError(0, 'NETWORK_ERROR', 'No se pudo conectar con el servidor. Revisa tu conexion.');
+    throw new ApiRequestError(0, 'NETWORK_ERROR', 'No se pudo conectar con el servidor. Revisa tu conexión.');
   }
 
   const text = await res.text();
@@ -46,7 +46,7 @@ export async function apiFetch<T>(path: string, options: RequestOptions = {}): P
 
   if (!res.ok) {
     const err = (json as ApiError).error;
-    throw new ApiRequestError(res.status, err?.code ?? 'ERROR', err?.message ?? 'Ocurrio un error inesperado');
+    throw new ApiRequestError(res.status, err?.code ?? 'ERROR', err?.message ?? 'Ocurrió un error inesperado');
   }
   return (json as { data: T }).data;
 }

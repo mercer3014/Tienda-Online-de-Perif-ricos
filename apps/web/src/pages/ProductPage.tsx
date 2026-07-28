@@ -56,12 +56,12 @@ export default function ProductPage() {
   useEffect(() => {
     if (!product) return;
     const price = activeVariant?.price ?? product.fromPrice;
-    setOg('og:title', `${product.name} — ${formatBs(price)}`);
+    setOg('og:title', `${product.name} · ${formatBs(price)}`);
     setOg('og:type', 'product');
     if (product.images[activeImage]?.urlWebp || product.primaryImage) {
       setOg('og:image', assetUrl(product.images[activeImage]?.urlWebp ?? product.primaryImage));
     }
-    setOg('og:description', product.description || 'Perifericos gamer en Villano Gamer Store.');
+    setOg('og:description', product.description || 'Periféricos gamer en Villano Gamer Store.');
   }, [product, activeVariant, activeImage]);
 
   if (isLoading) return <ProductSkeleton />;
@@ -90,7 +90,7 @@ export default function ProductPage() {
   return (
     <div>
       <nav className="mb-4 text-sm text-txt-faint">
-        <Link to="/catalogo" className="hover:text-neon-purple-bright">Catalogo</Link>
+        <Link to="/catalogo" className="hover:text-neon-purple-bright">Catálogo</Link>
         <span className="mx-2">/</span>
         <Link to={`/catalogo?categoria=${product.categorySlug}`} className="hover:text-neon-purple-bright">
           {product.categoryName}
@@ -150,7 +150,7 @@ export default function ProductPage() {
           {product.variants.length > 0 && (
             <div className="mt-6">
               <h2 className="mb-2 font-display text-sm uppercase tracking-wide text-neon-purple-bright">
-                Elige una opcion
+                Elige una opción
               </h2>
               <div className="grid gap-2 sm:grid-cols-2">
                 {product.variants.map((v) => {

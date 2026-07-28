@@ -2,11 +2,11 @@ import { Link } from 'react-router-dom';
 import { ArrowRight, ChevronRight, Sparkles } from 'lucide-react';
 import { useProducts, useCategoryTree } from '../hooks/catalog';
 import { ProductCard, ProductCardSkeleton } from '../components/ProductCard';
-import { ErrorState } from '../components/ui';
+import { EmptyState, ErrorState } from '../components/ui';
 import { usePageMeta } from '../components/Layout';
 
 export default function HomePage() {
-  usePageMeta('', 'Perifericos gamer en Santa Cruz, Bolivia: mouse, teclados mecanicos y componentes. Pedidos por WhatsApp.');
+  usePageMeta('', 'Periféricos gamer en Santa Cruz, Bolivia: mouse, teclados mecánicos y componentes. Pedidos por WhatsApp.');
   const { data, isLoading, isError, refetch } = useProducts('pageSize=8&sort=recientes');
   const { data: categories } = useCategoryTree();
 
@@ -21,11 +21,11 @@ export default function HomePage() {
             <span className="text-neon-green">setup</span>
           </h1>
           <p className="mt-3 max-w-lg text-txt-muted">
-            Perifericos y componentes gamer en Santa Cruz. Arma tu pedido y coordinamos
+            Periféricos y componentes gamer en Santa Cruz. Arma tu pedido y coordinamos
             pago y entrega por WhatsApp.
           </p>
           <Link to="/catalogo" className="btn-primary mt-6 inline-flex items-center gap-2">
-            Explorar catalogo <ArrowRight className="h-4 w-4" />
+            Explorar catálogo <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
       </section>
@@ -33,7 +33,7 @@ export default function HomePage() {
       {/* Categorias */}
       {categories && categories.length > 0 && (
         <section>
-          <h2 className="mb-4 font-display text-xl uppercase tracking-wide text-txt-primary">Categorias</h2>
+          <h2 className="mb-4 font-display text-xl uppercase tracking-wide text-txt-primary">Categorías</h2>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
             {categories.map((c) => (
               <Link
@@ -64,11 +64,15 @@ export default function HomePage() {
         </div>
         {isError ? (
           <ErrorState message="No se pudieron cargar los productos." onRetry={() => refetch()} />
+        ) : isLoading ? (
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+            {Array.from({ length: 8 }).map((_, i) => <ProductCardSkeleton key={i} />)}
+          </div>
+        ) : data && data.items.length === 0 ? (
+          <EmptyState title="Aún no hay productos" />
         ) : (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-            {isLoading
-              ? Array.from({ length: 8 }).map((_, i) => <ProductCardSkeleton key={i} />)
-              : data?.items.map((p) => <ProductCard key={p.id} product={p} />)}
+            {data?.items.map((p) => <ProductCard key={p.id} product={p} />)}
           </div>
         )}
       </section>

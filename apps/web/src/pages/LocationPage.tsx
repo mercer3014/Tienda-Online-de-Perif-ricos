@@ -1,21 +1,21 @@
 import { MapPin, Navigation, MessageSquare } from 'lucide-react';
 import { useStoreStatus } from '../hooks/catalog';
 import { ErrorState, Spinner } from '../components/ui';
-import { usePageMeta } from '../components/Layout';
+import { usePageMeta, StoreStatusPill } from '../components/Layout';
 
-const DAYS = ['Domingo', 'Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado'];
+const DAYS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 
 export default function LocationPage() {
-  usePageMeta('Ubicacion y horarios');
+  usePageMeta('Ubicación y horarios');
   const { data, isLoading, isError, refetch } = useStoreStatus();
 
   if (isLoading)
     return (
       <div className="flex items-center justify-center gap-2 py-20 text-txt-muted">
-        <Spinner /> Cargando ubicacion…
+        <Spinner /> Cargando ubicación…
       </div>
     );
-  if (isError || !data) return <ErrorState message="No se pudo cargar la informacion." onRetry={() => refetch()} />;
+  if (isError || !data) return <ErrorState message="No se pudo cargar la información." onRetry={() => refetch()} />;
 
   const loc = data.location;
   const todayDow = new Date(data.now).getDay();
@@ -23,13 +23,8 @@ export default function LocationPage() {
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="font-display text-2xl uppercase tracking-wide text-txt-primary">Donde estamos</h1>
-        <span
-          className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm font-semibold ${data.isOpen ? 'border-status-stock/50 bg-status-stock/10 text-status-stock' : 'border-status-out/50 bg-status-out/10 text-status-out'}`}
-        >
-          <span className={`h-2 w-2 rounded-full bg-current ${data.isOpen ? 'animate-pulse-neon' : ''}`} />
-          {data.isOpen ? 'Abierta Ahora' : 'Cerrada'}
-        </span>
+        <h1 className="font-display text-2xl uppercase tracking-wide text-txt-primary">Dónde estamos</h1>
+        <StoreStatusPill />
       </div>
 
       {loc && (
@@ -55,7 +50,7 @@ export default function LocationPage() {
       )}
 
       <section className="card p-6">
-        <h2 className="mb-3 font-display text-lg text-neon-purple-bright">Horario de atencion</h2>
+        <h2 className="mb-3 font-display text-lg text-neon-purple-bright">Horario de atención</h2>
         <ul className="divide-y divide-base-border">
           {data.hours.map((h) => {
             const isToday = h.dayOfWeek === todayDow;

@@ -19,7 +19,7 @@ function NotFound() {
   return (
     <div className="card mx-auto max-w-md p-10 text-center">
       <h1 className="mb-2 font-display text-2xl text-neon-purple-bright">404</h1>
-      <p className="mb-4 text-txt-muted">La pagina que buscas no existe.</p>
+      <p className="mb-4 text-txt-muted">La página que buscas no existe.</p>
       <Link to="/" className="btn-primary">Volver al inicio</Link>
     </div>
   );

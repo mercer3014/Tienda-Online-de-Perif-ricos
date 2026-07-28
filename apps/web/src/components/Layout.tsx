@@ -23,7 +23,7 @@ function StoreStatusPill() {
       )}
     >
       <span className={clsx('h-2 w-2 rounded-full bg-current', data.isOpen && 'animate-pulse-neon')} />
-      {data.isOpen ? 'Abierta Ahora' : 'Cerrada'}
+      {data.isOpen ? 'Abierta ahora' : 'Cerrada'}
     </span>
   );
 }
@@ -52,7 +52,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
           <button
             className="rounded p-2 text-txt-muted hover:text-neon-purple lg:hidden"
             onClick={() => setMenuOpen((o) => !o)}
-            aria-label="Abrir menu"
+            aria-label="Abrir menú"
             aria-expanded={menuOpen}
           >
             {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -74,7 +74,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <button
               onClick={openCart}
               className="relative inline-flex items-center gap-1.5 rounded-md border border-neon-purple/50 px-3 py-2 text-neon-purple-bright hover:bg-neon-purple/15 hover:shadow-neon-purple transition-all"
-              aria-label={`Carrito, ${count} articulos`}
+              aria-label={`Carrito, ${count} artículos`}
             >
               <ShoppingBag className="h-4 w-4" />
               {count > 0 && (
@@ -117,7 +117,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
               className={clsx('ml-auto inline-flex items-center gap-1.5', navClass(location.pathname === '/ubicacion'))}
               aria-current={location.pathname === '/ubicacion' ? 'page' : undefined}
             >
-              <MapPin className="h-4 w-4 text-neon-purple-bright" /> Ubicacion
+              <MapPin className="h-4 w-4 text-neon-purple-bright" /> Ubicación
             </Link>
           </div>
         </nav>
@@ -138,7 +138,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
             ))}
             <MobileLink to="/ubicacion" active={location.pathname === '/ubicacion'} onClick={() => setMenuOpen(false)}>
               <span className="inline-flex items-center gap-1.5">
-                <MapPin className="h-4 w-4 text-neon-purple-bright" /> Ubicacion y horarios
+                <MapPin className="h-4 w-4 text-neon-purple-bright" /> Ubicación y horarios
               </span>
             </MobileLink>
           </div>
@@ -150,7 +150,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
       <footer className="border-t border-base-border bg-base-void">
         <div className="mx-auto max-w-7xl px-4 py-6 text-center text-sm text-txt-faint">
           <p className="font-display uppercase tracking-widest text-txt-muted">Villano Gamer Store</p>
-          <p className="mt-1">Perifericos gamer · Santa Cruz de la Sierra, Bolivia</p>
+          <p className="mt-1">Periféricos gamer · Santa Cruz de la Sierra, Bolivia</p>
           <p className="mt-1">Pedidos coordinados por WhatsApp · Sin pago online</p>
         </div>
       </footer>

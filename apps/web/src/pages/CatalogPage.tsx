@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { X } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useAttributes, useProducts, useCategoryTree } from '../hooks/catalog';
 import { ProductCard, ProductCardSkeleton } from '../components/ProductCard';
 import { EmptyState, ErrorState, Spinner } from '../components/ui';
@@ -23,7 +23,7 @@ export default function CatalogPage() {
   const page = Number(params.get('page') ?? '1');
   const selectedAttrs = useMemo(() => params.getAll('attr'), [params]);
 
-  usePageMeta(search ? `Buscar: ${search}` : 'Catalogo');
+  usePageMeta(search ? `Buscar: ${search}` : 'Catálogo');
 
   const { data: attributes } = useAttributes();
   const { data: categories } = useCategoryTree();
@@ -74,6 +74,8 @@ export default function CatalogPage() {
 
   const activeCategory = categories?.find((c) => c.slug === categoria);
   const hasActiveFilters = !!(minPrice || maxPrice || selectedAttrs.length || search);
+  const filterCount =
+    (categoria ? 1 : 0) + (minPrice ? 1 : 0) + (maxPrice ? 1 : 0) + selectedAttrs.length;
 
   // Cierra el panel de filtros al pasar a desktop.
   useEffect(() => {
@@ -92,15 +94,15 @@ export default function CatalogPage() {
             key={`min-${minPrice}`}
             onBlur={(e) => update((p) => (e.target.value ? p.set('minPrice', e.target.value) : p.delete('minPrice')))}
             className="w-full rounded border border-base-border bg-base-void px-2 py-1.5 text-sm"
-            aria-label="Precio minimo"
+            aria-label="Precio mínimo"
           />
-          <span className="text-txt-faint">—</span>
+          <span className="text-txt-faint">a</span>
           <input
             type="number" inputMode="numeric" placeholder="Max" defaultValue={maxPrice}
             key={`max-${maxPrice}`}
             onBlur={(e) => update((p) => (e.target.value ? p.set('maxPrice', e.target.value) : p.delete('maxPrice')))}
             className="w-full rounded border border-base-border bg-base-void px-2 py-1.5 text-sm"
-            aria-label="Precio maximo"
+            aria-label="Precio máximo"
           />
         </div>
       </div>
@@ -138,12 +140,20 @@ export default function CatalogPage() {
     <div>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <h1 className="font-display text-2xl uppercase tracking-wide text-txt-primary">
-          {activeCategory?.name ?? (search ? `Resultados: "${search}"` : 'Catalogo')}
+          {activeCategory?.name ?? (search ? `Resultados: "${search}"` : 'Catálogo')}
         </h1>
         <div className="flex items-center gap-2">
           {isFetching && !isLoading && <Spinner className="h-4 w-4" />}
-          <button className="btn-primary py-1.5 text-sm lg:hidden" onClick={() => setShowFilters((s) => !s)}>
-            Filtros {hasActiveFilters && '•'}
+          <button
+            className="btn-primary inline-flex items-center gap-1.5 py-1.5 text-sm lg:hidden"
+            onClick={() => setShowFilters((s) => !s)}
+          >
+            Filtros
+            {filterCount > 0 && (
+              <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-base-black/25 px-1 text-xs font-bold">
+                {filterCount}
+              </span>
+            )}
           </button>
           <select
             value={sort}
@@ -151,7 +161,7 @@ export default function CatalogPage() {
             className="rounded border border-base-border bg-base-void px-2 py-1.5 text-sm"
             aria-label="Ordenar"
           >
-            <option value="recientes">Mas recientes</option>
+            <option value="recientes">Más recientes</option>
             <option value="precio_asc">Precio: menor a mayor</option>
             <option value="precio_desc">Precio: mayor a menor</option>
             <option value="nombre">Nombre A-Z</option>
@@ -207,7 +217,11 @@ export default function CatalogPage() {
               {Array.from({ length: 9 }).map((_, i) => <ProductCardSkeleton key={i} />)}
             </div>
           ) : data && data.items.length === 0 ? (
-            <EmptyState title="Sin resultados" hint="Proba con otros filtros o terminos de busqueda." />
+            <EmptyState
+              title="Sin resultados"
+              hint="Prueba con otros filtros o términos de búsqueda."
+              action={hasActiveFilters ? { label: 'Limpiar filtros', onClick: clearFilters } : undefined}
+            />
           ) : (
             <>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
@@ -218,21 +232,21 @@ export default function CatalogPage() {
               {data && data.totalPages > 1 && (
                 <div className="mt-6 flex items-center justify-center gap-2">
                   <button
-                    className="btn-secondary py-1.5 text-sm disabled:opacity-40"
+                    className="btn-secondary inline-flex items-center gap-1 py-1.5 text-sm disabled:opacity-40"
                     disabled={page <= 1}
                     onClick={() => goToPage(page - 1)}
                   >
-                    ← Anterior
+                    <ChevronLeft className="h-4 w-4" /> Anterior
                   </button>
                   <span className="text-sm text-txt-muted">
-                    Pagina {data.page} de {data.totalPages}
+                    Página {data.page} de {data.totalPages}
                   </span>
                   <button
-                    className="btn-secondary py-1.5 text-sm disabled:opacity-40"
+                    className="btn-secondary inline-flex items-center gap-1 py-1.5 text-sm disabled:opacity-40"
                     disabled={page >= data.totalPages}
                     onClick={() => goToPage(page + 1)}
                   >
-                    Siguiente →
+                    Siguiente <ChevronRight className="h-4 w-4" />
                   </button>
                 </div>
               )}
