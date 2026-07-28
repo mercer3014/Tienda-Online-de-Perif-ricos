@@ -1,0 +1,32 @@
+Fase 5: Panel administrativo (apps/admin).
+
+1. Pantalla de login con JWT, protegiendo todas las rutas internas
+   (redirect a login si no hay sesión válida).
+2. El menú y las acciones visibles deben adaptarse a los permisos reales
+   del rol logueado (si no tiene permiso para eliminar inventario, ese
+   botón no debe aparecer, y aunque apareciera, el backend ya lo
+   bloquea).
+3. Gestor de productos: listado con búsqueda/filtro, formulario de alta
+   con subida de múltiples imágenes por arrastrar y soltar, gestión de
+   variantes y sus atributos, edición rápida de precio y stock.
+4. Gestor de categorías: árbol jerárquico editable visualmente
+   (crear/mover/renombrar categorías y subcategorías), marcado de
+   "Promoción Especial" con banner.
+5. Gestor de roles y permisos: matriz de casillas para que el Super
+   Admin configure qué puede hacer cada rol.
+6. Pedidos: listado de órdenes generadas desde el carrito, con cambio de
+   estado (pendiente/coordinado/completado/cancelado).
+7. Métricas: productos más vistos, más agregados al carrito, más
+   pedidos generados, alertas de stock bajo/agotado.
+8. Auditoría: tabla del historial de cambios con filtro por usuario,
+   entidad y fecha, mostrando el valor anterior y nuevo cuando aplique.
+9. Igual que en el catálogo: todo estado de carga debe tener feedback
+   visual (spinners, skeletons, estados de guardado), todo error debe
+   mostrarse de forma clara, y el diseño debe ser responsive (aunque el
+   uso principal del admin sea desktop, tiene que ser usable desde un
+   celular para revisar pedidos rápido).
+
+Al terminar: hacé la auto-revisión probando cada módulo con un usuario
+de cada rol distinto, verificando que los permisos realmente
+restringen lo que corresponde tanto visualmente como en el backend, y
+corregí lo que encuentres antes de darlo por terminado.

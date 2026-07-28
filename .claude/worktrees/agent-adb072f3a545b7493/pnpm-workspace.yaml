@@ -1,0 +1,17 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+
+allowBuilds:
+  '@prisma/engines': set this to true or false
+
+# Dependencias autorizadas a ejecutar scripts de instalacion (binarios nativos).
+onlyBuiltDependencies:
+  - "@prisma/client"
+  - "@prisma/engines"
+  - prisma
+  - esbuild
+  - sharp
+
+# Evita el pre-chequeo de estado de dependencias antes de cada script.
+verifyDepsBeforeRun: false

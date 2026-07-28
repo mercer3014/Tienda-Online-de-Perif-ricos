@@ -1,0 +1,173 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ==========================================================================
+   Design tokens (v2) — verificados WCAG AA. Identicos a los del catalogo.
+   Modo oscuro por defecto (:root); modo claro via clase .light.
+   ========================================================================== */
+:root {
+  color-scheme: dark;
+
+  --color-base-black: 10 11 16;
+  --color-base-void: 15 17 23;
+  --color-base-graphite: 18 21 34;
+  --color-base-panel: 22 26 41;
+  --color-base-border: 42 51 80;
+
+  --color-neon-purple: 168 85 247;
+  --color-neon-purple-bright: 196 181 253;
+  --color-neon-green: 57 255 20;
+  --color-neon-green-soft: 74 222 128;
+
+  --color-txt-primary: 232 234 242;
+  --color-txt-muted: 168 176 200;
+  --color-txt-faint: 130 140 170;
+
+  --color-status-stock: 74 222 128;
+  --color-status-low: 251 191 36;
+  --color-status-out: 251 113 133;
+
+  --color-accent-solid: 124 58 237;
+  --color-on-accent: 255 255 255;
+  --color-accent2-solid: 57 255 20;
+  --color-on-accent2: 4 20 10;
+
+  --shadow-neon-purple: 0 0 14px rgba(168, 85, 247, 0.35), 0 0 2px rgba(168, 85, 247, 0.6);
+  --shadow-neon-green: 0 0 14px rgba(57, 255, 20, 0.3), 0 0 2px rgba(57, 255, 20, 0.6);
+  --shadow-panel: 0 8px 30px rgba(0, 0, 0, 0.55);
+
+  --bg-radial: radial-gradient(circle at 15% -10%, rgba(168, 85, 247, 0.1), transparent 45%),
+    radial-gradient(circle at 100% 0%, rgba(57, 255, 20, 0.06), transparent 40%);
+}
+
+html.light,
+body.light,
+.light {
+  color-scheme: light;
+
+  --color-base-black: 244 246 251;
+  --color-base-void: 238 242 248;
+  --color-base-graphite: 255 255 255;
+  --color-base-panel: 255 255 255;
+  --color-base-border: 211 218 230;
+
+  --color-neon-purple: 124 58 237;
+  --color-neon-purple-bright: 109 40 217;
+  --color-neon-green: 22 163 74;
+  --color-neon-green-soft: 21 128 61;
+
+  --color-txt-primary: 19 23 34;
+  --color-txt-muted: 59 69 87;
+  --color-txt-faint: 90 100 120;
+
+  --color-status-stock: 21 128 61;
+  --color-status-low: 180 83 9;
+  --color-status-out: 220 38 38;
+
+  --color-accent-solid: 109 40 217;
+  --color-on-accent: 255 255 255;
+  --color-accent2-solid: 34 197 94;
+  --color-on-accent2: 4 20 10;
+
+  --shadow-neon-purple: 0 4px 14px rgba(109, 40, 217, 0.15);
+  --shadow-neon-green: 0 4px 14px rgba(21, 128, 61, 0.12);
+  --shadow-panel: 0 4px 20px rgba(15, 23, 42, 0.08);
+
+  --bg-radial: radial-gradient(circle at 15% -10%, rgba(109, 40, 217, 0.05), transparent 45%),
+    radial-gradient(circle at 100% 0%, rgba(21, 128, 61, 0.04), transparent 40%);
+}
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+  body {
+    background-color: rgb(var(--color-base-black));
+    color: rgb(var(--color-txt-primary));
+    font-family: var(--font-body, 'Inter', sans-serif);
+    background-image: var(--bg-radial);
+    background-attachment: fixed;
+    transition: background-color 0.2s ease, color 0.2s ease;
+  }
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply font-display tracking-wide text-txt-primary;
+  }
+  :focus-visible {
+    @apply outline-none ring-2 ring-neon-purple ring-offset-2;
+    --tw-ring-offset-color: rgb(var(--color-base-black));
+  }
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-display font-semibold uppercase tracking-wide transition-all disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-primary {
+    @apply btn border border-transparent;
+    background-color: rgb(var(--color-accent-solid));
+    color: rgb(var(--color-on-accent));
+  }
+  .btn-primary:hover:not(:disabled) {
+    filter: brightness(1.08);
+    box-shadow: var(--shadow-neon-purple);
+  }
+  .btn-secondary {
+    @apply btn border border-base-border bg-transparent text-txt-primary;
+  }
+  .btn-secondary:hover:not(:disabled) {
+    background-color: rgb(var(--color-base-border) / 0.35);
+  }
+  .btn-accent {
+    @apply btn border border-transparent;
+    background-color: rgb(var(--color-accent2-solid));
+    color: rgb(var(--color-on-accent2));
+  }
+  .btn-accent:hover:not(:disabled) {
+    filter: brightness(1.06);
+    box-shadow: var(--shadow-neon-green);
+  }
+  .btn-danger {
+    @apply btn border bg-transparent;
+    color: rgb(var(--color-status-out));
+    border-color: rgb(var(--color-status-out) / 0.5);
+  }
+  .btn-danger:hover:not(:disabled) {
+    background-color: rgb(var(--color-status-out) / 0.12);
+  }
+
+  .card {
+    @apply rounded-lg border border-base-border bg-base-panel shadow-panel;
+  }
+  .input {
+    @apply w-full rounded-md border border-base-border bg-base-void px-3 py-2 text-txt-primary placeholder:text-txt-faint focus:border-neon-purple;
+  }
+  .skeleton {
+    @apply animate-pulse rounded;
+    background-color: rgb(var(--color-base-border) / 0.6);
+  }
+
+  .badge {
+    @apply inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-semibold;
+  }
+  .badge-success {
+    color: rgb(var(--color-status-stock));
+    border-color: rgb(var(--color-status-stock) / 0.5);
+    background-color: rgb(var(--color-status-stock) / 0.12);
+  }
+  .badge-warning {
+    color: rgb(var(--color-status-low));
+    border-color: rgb(var(--color-status-low) / 0.5);
+    background-color: rgb(var(--color-status-low) / 0.12);
+  }
+  .badge-danger {
+    color: rgb(var(--color-status-out));
+    border-color: rgb(var(--color-status-out) / 0.5);
+    background-color: rgb(var(--color-status-out) / 0.12);
+  }
+}

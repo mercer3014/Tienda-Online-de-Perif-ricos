@@ -1,0 +1,40 @@
+Fase 4: Frontend del catálogo público (apps/web).
+
+1. Implementá la identidad visual cyberpunk (fondo oscuro, acentos
+   púrpura/verde neón, bordes biselados) de forma consistente en todos
+   los componentes, con Tailwind.
+2. Home: buscador en cabecera, menú de categorías accesible en mobile,
+   destacados/promociones.
+3. Listado de categoría/subcategoría con filtros dinámicos (atributos,
+   rango de precio) que actualizan la URL (query params) para que los
+   filtros sean compartibles y funcionen con el botón atrás del
+   navegador.
+4. Ficha de producto: galería de imágenes, selector de variantes que
+   actualiza precio/stock en tiempo real, indicador de estado de stock,
+   botón "Agregar al carrito".
+5. Carrito lateral/flotante con contador de ítems, edición de
+   cantidades, eliminación de productos, y botón "Finalizar por
+   WhatsApp" que arma el mensaje completo (productos, variantes,
+   cantidades, precios, total) y abre wa.me con el texto pre-cargado,
+   registrando la orden en el backend antes de redirigir.
+6. Persistencia del carrito en localStorage vía Zustand (persist
+   middleware) para que no se pierda si el cliente cierra la pestaña.
+7. Sección de ubicación con botones "Abrir en Google Maps" / "Abrir en
+   Waze" e indicador dinámico "Abierta Ahora"/"Cerrada" consultando el
+   endpoint correspondiente.
+8. Meta tags OpenGraph dinámicos por producto (título, imagen, precio)
+   para que se vean bien al compartir por WhatsApp.
+9. TODA carga de datos (productos, filtros, envío del pedido) debe
+   mostrar un estado de carga visible: skeletons para listados/fichas de
+   producto, spinner en botones mientras se procesa una acción. Nunca
+   una pantalla en blanco mientras carga.
+10. Manejo de estados vacíos y de error (sin resultados, error de red)
+    con mensajes claros, nunca una pantalla rota.
+11. Responsive real: probá en al menos 3 anchos (mobile ~375px, tablet
+    ~768px, desktop ~1280px) y corregí cualquier overflow o elemento
+    cortado.
+
+Al terminar: hacé la auto-revisión navegando el flujo completo como lo
+haría un cliente real (buscar → filtrar → ver producto → agregar al
+carrito → finalizar por WhatsApp), en mobile y desktop, y corregí lo
+que encuentres antes de darlo por terminado.

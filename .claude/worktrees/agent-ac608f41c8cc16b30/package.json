@@ -1,0 +1,35 @@
+{
+  "name": "villano-gamer-store",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Villano Gamer Store - Tienda gamer online (Santa Cruz, Bolivia). Catalogo publico + panel admin, checkout por WhatsApp.",
+  "engines": {
+    "node": ">=20",
+    "pnpm": ">=9"
+  },
+  "scripts": {
+    "dev": "pnpm --parallel --filter \"./apps/*\" dev",
+    "dev:api": "pnpm --filter @villano/api dev",
+    "dev:web": "pnpm --filter @villano/web dev",
+    "dev:admin": "pnpm --filter @villano/admin dev",
+    "build": "pnpm --filter @villano/shared-types build && pnpm --filter \"./apps/*\" build",
+    "lint": "pnpm -r lint",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,css,md}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,css,md}\"",
+    "typecheck": "pnpm -r typecheck",
+    "db:migrate": "pnpm --filter @villano/api prisma:migrate",
+    "db:seed": "pnpm --filter @villano/api prisma:seed",
+    "db:generate": "pnpm --filter @villano/api prisma:generate",
+    "db:studio": "pnpm --filter @villano/api prisma:studio"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^8.18.0",
+    "@typescript-eslint/parser": "^8.18.0",
+    "eslint": "^8.57.1",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-react": "^7.37.2",
+    "eslint-plugin-react-hooks": "^4.6.2",
+    "prettier": "^3.4.2",
+    "typescript": "^5.7.2"
+  }
+}

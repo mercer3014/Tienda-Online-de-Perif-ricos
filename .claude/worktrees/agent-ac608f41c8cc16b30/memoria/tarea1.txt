@@ -1,0 +1,125 @@
+Vas a desarrollar de punta a punta el sistema "Villano Gamer Store": una tienda
+gamer online en Santa Cruz, Bolivia, con catálogo público + panel administrativo,
+sin pasarela de pago (checkout por WhatsApp).
+
+CONTEXTO DEL NEGOCIO
+- Tienda física de periféricos gamer (mouse, teclados mecánicos, componentes)
+  dentro de un centro comercial en Santa Cruz.
+- No hay carrito con pago online. El cliente arma su pedido en un carrito propio
+  del sitio y al finalizar se genera un mensaje de WhatsApp pre-armado con el
+  detalle completo (productos, variantes, cantidades, precios, total en Bs.)
+  que se envía al número de la tienda para coordinar pago y entrega.
+- Identidad visual: cyberpunk futurista oscuro. Fondo ultra oscuro (negro/grafito),
+  acentos en Púrpura Neón y Verde Neón, bordes asimétricos/biselados, resplandores
+  neón en elementos interactivos. Mobile-first, sin descuidar desktop.
+
+STACK TÉCNICO OBLIGATORIO
+- Monorepo con workspaces (npm o pnpm).
+- Frontend: React + Vite + TypeScript + Tailwind CSS.
+- Estado del carrito: Zustand con persistencia en localStorage.
+- Data fetching: TanStack Query.
+- Validación: Zod (esquemas compartidos entre frontend y backend).
+- Backend: Node.js + Express (o Fastify) + TypeScript.
+- ORM: Prisma sobre PostgreSQL.
+- Autenticación del panel admin: JWT + bcrypt (los clientes del catálogo NO
+  tienen cuenta, solo el personal de la tienda).
+- Procesamiento de imágenes: Sharp, conversión automática a WebP antes de
+  almacenar.
+- Todas las credenciales (DB, JWT secret, etc.) van en variables de entorno
+  (.env), nunca hardcodeadas. El .env debe estar en .gitignore desde el
+  primer commit.
+
+ARQUITECTURA DE CARPETAS (monorepo)
+villano-gamer-store/
+├── apps/
+│   ├── web/        → catálogo público (cliente, sin login)
+│   ├── admin/       → panel administrativo (con login y roles)
+│   └── api/          → backend, incluye prisma/schema.prisma y migraciones
+├── packages/
+│   └── shared-types/ → tipos TS y esquemas Zod compartidos
+├── docker-compose.yml (Postgres local para desarrollo)
+├── .env.example
+└── README.md
+
+MODELO DE BASE DE DATOS (debe quedar normalizado, mínimo 3FN)
+Entidades principales y sus relaciones:
+
+1. categories: id, parent_id (FK a sí misma, para árbol jerárquico), name,
+   slug, is_promo, promo_badge_text, display_order.
+2. products: id, category_id (FK), name, slug, description, brand,
+   base_price, status (activo/inactivo), created_at, updated_at.
+3. product_images: id, product_id (FK), url_webp, display_order, is_primary.
+4. attributes: id, name (ej. "Tipo de switch", "Conectividad", "Formato").
+5. attribute_values: id, attribute_id (FK), value (ej. "Blue", "TKL").
+6. product_variants: id, product_id (FK), sku, price, stock_quantity,
+   stock_status (calculado, no manual: 0 = Agotado, <5 = Pocas Unidades,
+   resto = En Stock).
+7. variant_attribute_values: tabla puente variant_id + attribute_value_id.
+8. orders: id, order_number, customer_phone (opcional), total_amount,
+   status (pendiente/coordinado/completado/cancelado), whatsapp_sent,
+   created_at.
+9. order_items: id, order_id (FK), variant_id (FK), quantity, unit_price,
+   subtotal (snapshot de nombre/variante para no perder el dato si el
+   producto cambia después).
+10. product_events: id, product_id (FK), event_type (view/add_to_cart/
+    whatsapp_click), created_at, session_id anónimo — para métricas de
+    demanda y abandono de carrito.
+11. users: id, role_id (FK), name, email, password_hash, active,
+    created_at — personal del panel, NO clientes.
+12. roles: id, name (Super Admin, Administrador de Tienda, Encargado de
+    Stock, Personal de Marketing).
+13. permissions: id, key (ej. crear_producto, editar_precio,
+    eliminar_inventario, modificar_categoria), description.
+14. role_permissions: tabla puente role_id + permission_id + allowed
+    (boolean) — es la matriz configurable de permisos.
+15. audit_log: id, user_id (FK), action, entity_type, entity_id,
+    old_value (jsonb), new_value (jsonb), created_at.
+16. business_hours: id, day_of_week, open_time, close_time.
+17. store_location: id, mall_name, address, passage_number,
+    locale_number, latitude, longitude, google_maps_url, waze_url.
+
+Reglas de normalización: usar UUID como PK en todas las tablas (no enteros
+autoincrementales), claves foráneas con integridad referencial (ON DELETE
+según corresponda — RESTRICT para catálogo, CASCADE solo donde tenga sentido
+como product_images/product_variants), índices en todas las FK más
+consultadas (category_id, product_id, order_id, parent_id), y borrado
+lógico (campo status/active) en vez de DELETE físico en products y
+categories para no romper referencias en pedidos históricos.
+
+REQUISITOS NO FUNCIONALES (aplican a TODO el sistema, sin excepción)
+- Rendimiento: carga rápida en redes 4G/5G. Lazy loading de imágenes,
+  paginación o scroll infinito en listados largos, consultas indexadas,
+  caché en el cliente con TanStack Query.
+- Responsive: mobile-first en el catálogo, funcional y prolijo en desktop
+  tanto en catálogo como en admin.
+- Feedback de carga: TODA acción que implique espera (cargar productos,
+  subir una imagen, guardar un formulario, enviar el pedido) debe mostrar
+  un indicador de carga visible (spinner, skeleton o barra de progreso).
+  Nunca debe quedar una pantalla en blanco o congelada sin feedback.
+- Manejo de errores: todo fetch o mutación debe tener manejo de error con
+  mensaje claro al usuario, nunca una pantalla rota o un error crudo en
+  consola visible al usuario final.
+- Seguridad: validar todo input tanto en frontend como backend (Zod),
+  sanitizar antes de guardar, usar Prisma (que previene inyección SQL por
+  diseño) para todas las consultas, hashear contraseñas con bcrypt,
+  proteger rutas de admin con JWT + verificación de permisos por rol en
+  cada endpoint (no solo en el frontend), rate limiting básico en endpoints
+  públicos sensibles, headers de seguridad (helmet en Express).
+- Accesibilidad básica: textos alternativos en imágenes, contraste
+  adecuado en la paleta neón sobre fondo oscuro, foco visible en elementos
+  interactivos.
+
+MODO DE TRABAJO ESPERADO
+Vas a trabajar por fases. Al terminar cada fase, ANTES de decirme que está
+lista, hacé una auto-revisión completa: repasá el código escrito, corré
+lo que se pueda correr (build, lint, tests si existen), verificá que
+cumple los requisitos no funcionales de arriba, y corregí lo que
+encuentres. Repetí esta revisión las veces que haga falta hasta estar
+seguro de que no quedan errores obvios ni huecos de seguridad antes de
+darme el resultado final de la fase. Si algo del alcance no está claro,
+preguntame antes de asumir.
+
+la clave de pgadmin para que crees la base de datos es :awd78951230
+crea la base de datos en pgadmin
+
+como gestor de dependecias usaremos lo que es pnpm OBLIGATORIO

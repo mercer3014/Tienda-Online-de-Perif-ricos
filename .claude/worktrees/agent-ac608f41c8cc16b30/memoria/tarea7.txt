@@ -1,0 +1,60 @@
+Fase 6: Revisión final integral antes de entrega al cliente.
+
+Quiero que hagas una auditoría completa del sistema entero (base de
+datos, backend, catálogo y admin) contra este checklist. Andá tabla por
+tabla, endpoint por endpoint, pantalla por pantalla. Donde encuentres un
+problema, corregilo, y volvé a revisar esa parte de nuevo. Repetí esta
+pasada completa las veces que sea necesario hasta que puedas marcar
+TODOS los puntos como cumplidos con evidencia (no solo "debería andar").
+
+BASE DE DATOS
+[ ] El esquema está normalizado, sin redundancia de datos innecesaria.
+[ ] Todas las FK tienen índice y un onDelete coherente con el negocio.
+[ ] No hay forma de insertar un pedido con un producto/variante inexistente.
+
+SEGURIDAD
+[ ] Ningún endpoint admin es accesible sin JWT válido.
+[ ] Cada endpoint admin verifica el permiso específico en el backend,
+    no solo en el frontend.
+[ ] Las contraseñas están hasheadas con bcrypt, nunca en texto plano.
+[ ] Ninguna respuesta de la API devuelve password_hash u otros datos
+    sensibles de más.
+[ ] Todo input de usuario se valida con Zod antes de tocar la base de
+    datos, en ambos lados.
+[ ] Hay rate limiting en endpoints públicos sensibles.
+[ ] Las variables sensibles (DB, JWT secret) están solo en .env, y .env
+    no está en el repositorio.
+
+RENDIMIENTO
+[ ] Las imágenes se sirven en WebP y con lazy loading.
+[ ] Los listados largos están paginados o con scroll infinito, no
+    cargan todo de una vez.
+[ ] Las consultas más frecuentes usan los índices definidos (revisar
+    con EXPLAIN si hace falta).
+
+EXPERIENCIA DE USUARIO / RESPONSIVE
+[ ] Cada acción que implica espera de red muestra un loader visible
+    (spinner o skeleton), sin excepciones.
+[ ] Ningún error de red o de servidor deja una pantalla en blanco o
+    rota; siempre hay un mensaje claro.
+[ ] El catálogo y el admin se ven y funcionan correctamente en mobile,
+    tablet y desktop, sin overflow ni elementos cortados.
+[ ] El flujo completo de compra (buscar, filtrar, agregar al carrito,
+    finalizar por WhatsApp) funciona de punta a punta sin errores en
+    mobile.
+
+FUNCIONAL
+[ ] Los filtros por categoría, atributo y precio devuelven resultados
+    correctos y combinables entre sí.
+[ ] El selector de variantes actualiza precio y stock correctamente.
+[ ] El mensaje de WhatsApp generado incluye todos los datos del pedido
+    y el total calculado bien.
+[ ] El audit log registra correctamente creación, edición y eliminación
+    en todas las entidades relevantes.
+[ ] El indicador "Abierta Ahora/Cerrada" refleja la hora real de
+    Bolivia contra el horario configurado.
+
+Al terminar cada pasada completa del checklist, decime explícitamente
+cuántas veces revisaste y qué encontraste/corregiste en cada vuelta. No
+me entregues el sistema como terminado hasta que una pasada completa no
+encuentre ningún problema nuevo.
