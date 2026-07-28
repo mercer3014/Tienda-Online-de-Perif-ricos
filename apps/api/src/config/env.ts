@@ -21,7 +21,13 @@ const envSchema = z.object({
   UPLOAD_DIR: z.string().default('uploads'),
   MAX_UPLOAD_MB: z.coerce.number().default(8),
 
-  STORE_WHATSAPP_NUMBER: z.string().default('59170000000'),
+  // Solo digitos, formato internacional sin "+" (8-15 digitos). Un numero mal
+  // configurado rompe en silencio el unico paso de conversion del negocio:
+  // el link wa.me que se genera en cada pedido.
+  STORE_WHATSAPP_NUMBER: z
+    .string()
+    .regex(/^\d{8,15}$/, 'STORE_WHATSAPP_NUMBER debe tener solo digitos en formato internacional (8-15 digitos)')
+    .default('59170000000'),
   STORE_TIMEZONE: z.string().default('America/La_Paz'),
 });
 

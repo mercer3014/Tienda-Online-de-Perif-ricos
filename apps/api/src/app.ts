@@ -3,6 +3,7 @@ import helmet from 'helmet';
 import cors from 'cors';
 import rateLimit from 'express-rate-limit';
 import { env } from './config/env.js';
+import { prisma } from './lib/prisma.js';
 import { authRouter } from './modules/auth/auth.routes.js';
 import { publicRouter } from './routes/public.routes.js';
 import { adminRouter } from './routes/admin.routes.js';
@@ -14,13 +15,11 @@ export function createApp(): Express {
   app.disable('x-powered-by');
   app.set('trust proxy', 1);
 
-  // Cabeceras de seguridad. crossOriginResourcePolicy relajado para servir
-  // las imagenes /uploads a los frontends en otro puerto/origen.
-  app.use(
-    helmet({
-      crossOriginResourcePolicy: { policy: 'cross-origin' },
-    }),
-  );
+  // Cabeceras de seguridad con los defaults estrictos de helmet para toda la
+  // API. El crossOriginResourcePolicy relajado que necesitan las imagenes de
+  // /uploads (servidas a otro origen/puerto) se aplica SOLO en ese router,
+  // mas abajo, para no debilitar el resto de las respuestas JSON.
+  app.use(helmet());
 
   // CORS restringido a los origenes del frontend/admin.
   app.use(
@@ -37,11 +36,24 @@ export function createApp(): Express {
   app.use(express.json({ limit: '1mb' }));
   app.use(express.urlencoded({ extended: true }));
 
-  // Archivos estaticos: imagenes WebP procesadas.
-  app.use('/uploads', express.static(env.uploadDirAbs, { maxAge: '7d', immutable: true }));
+  // Archivos estaticos: imagenes WebP procesadas. CORP relajado solo aca.
+  app.use(
+    '/uploads',
+    helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }),
+    express.static(env.uploadDirAbs, { maxAge: '7d', immutable: true }),
+  );
 
-  // Healthcheck.
-  app.get('/api/health', (_req, res) => res.json({ data: { status: 'ok', ts: Date.now() } }));
+  // Healthcheck: incluye un ping real a la base para que un orquestador
+  // (Docker/PM2/balanceador) detecte si la DB esta caida aunque el proceso
+  // Node siga vivo, en vez de reportar "ok" siempre.
+  app.get('/api/health', async (_req, res) => {
+    try {
+      await prisma.$queryRaw`SELECT 1`;
+      res.json({ data: { status: 'ok', ts: Date.now() } });
+    } catch {
+      res.status(503).json({ error: { code: 'DB_UNAVAILABLE', message: 'Base de datos no disponible' } });
+    }
+  });
 
   // Rate limiting en endpoints publicos sensibles. Instancias SEPARADAS: los
   // eventos de metricas (view/add_to_cart) se disparan varias veces por
@@ -62,8 +74,19 @@ export function createApp(): Express {
     legacyHeaders: false,
     message: { error: { code: 'RATE_LIMITED', message: 'Demasiadas solicitudes. Intenta mas tarde.' } },
   });
+  // Limite general y permisivo para el resto de la API publica (listados,
+  // categorias, atributos, estado de tienda) que hoy no tenia ningun tope:
+  // sin esto, los filtros de busqueda quedaban abiertos a scraping agresivo.
+  const generalLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 600,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: { code: 'RATE_LIMITED', message: 'Demasiadas solicitudes. Intenta mas tarde.' } },
+  });
   app.use('/api/orders', ordersLimiter);
   app.use('/api/events', eventsLimiter);
+  app.use('/api', generalLimiter);
 
   // Rutas.
   app.use('/api/auth', authRouter);

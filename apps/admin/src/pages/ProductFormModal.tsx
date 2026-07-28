@@ -24,7 +24,7 @@ import { useDismissable } from '../lib/useDismissable';
 
 function flattenCats(nodes: CategoryNode[], depth = 0): { id: string; label: string }[] {
   return nodes.flatMap((n) => [
-    { id: n.id, label: `${'— '.repeat(depth)}${n.name}` },
+    { id: n.id, label: `${depth > 0 ? '  '.repeat(depth) + '↳ ' : ''}${n.name}` },
     ...flattenCats(n.children, depth + 1),
   ]);
 }
@@ -35,7 +35,16 @@ const formatBytes = (b: number) =>
   b >= 1024 * 1024 ? `${(b / 1024 / 1024).toFixed(1)} MB` : `${Math.max(1, Math.round(b / 1024))} KB`;
 
 /** Panel deslizante (drawer) de alta/edicion de producto. */
-export function ProductFormModal({ productId, onClose }: { productId: string | null; onClose: () => void }) {
+export function ProductFormModal({
+  productId,
+  onClose,
+  onCreated,
+}: {
+  productId: string | null;
+  onClose: () => void;
+  /** Al crear con exito, el padre pasa a modo edicion con el id nuevo (para poder cargar imagenes/variantes sin reabrir el drawer). */
+  onCreated: (id: string) => void;
+}) {
   const isEdit = !!productId;
   const { can } = useAuth();
   const { data: existing, isLoading } = useAdminProduct(productId);
@@ -78,8 +87,16 @@ export function ProductFormModal({ productId, onClose }: { productId: string | n
     const parsed = createProductSchema.safeParse(payload);
     if (!parsed.success) { setError(parsed.error.errors[0]?.message ?? 'Datos invalidos'); return; }
     try {
-      if (isEdit) { await update.mutateAsync({ id: productId!, body: parsed.data }); toast.success('Producto actualizado'); }
-      else { await create.mutateAsync(parsed.data); toast.success('Producto creado'); onClose(); }
+      if (isEdit) {
+        await update.mutateAsync({ id: productId!, body: parsed.data });
+        toast.success('Producto actualizado');
+      } else {
+        const created = await create.mutateAsync(parsed.data);
+        toast.success('Producto creado');
+        // Pasa a modo edicion con el id nuevo en vez de cerrar: recien ahi
+        // se pueden cargar imagenes y variantes, y el aviso de abajo lo dice.
+        onCreated(created.id);
+      }
     } catch (e) { setError(e instanceof Error ? e.message : 'Error al guardar'); }
   };
 
@@ -152,9 +169,9 @@ export function ProductFormModal({ productId, onClose }: { productId: string | n
 
         {/* Footer fijo */}
         <footer className="flex items-center justify-end gap-2 border-t border-base-border p-4">
-          <button className="btn-secondary" onClick={onClose}>Descartar</button>
+          <button className="btn-secondary" onClick={onClose}>Cancelar</button>
           <button className="btn-primary" onClick={submit} disabled={saving}>
-            {saving ? <><Spinner className="h-4 w-4" /> Guardando…</> : 'Guardar cambios'}
+            {saving ? <><Spinner className="h-4 w-4" /> Guardando…</> : isEdit ? 'Guardar cambios' : 'Crear producto'}
           </button>
         </footer>
       </aside>
@@ -266,14 +283,22 @@ function VariantsSection({ product }: { product: ProductDetailDTO }) {
     catch (e) { toast.error(e instanceof Error ? e.message : 'Error'); }
   };
 
+  const [savingId, setSavingId] = useState<string | null>(null);
   const saveQuick = async (id: string, price: number, stock: number) => {
+    setSavingId(id);
     try { await quick.mutateAsync({ id, body: { price, stockQuantity: stock } }); toast.success('Variante actualizada'); }
     catch (e) { toast.error(e instanceof Error ? e.message : 'Error'); }
+    finally { setSavingId(null); }
   };
 
   const deleteVariant = async (id: string, label: string) => {
-    const ok = await confirmAction({ title: '¿Eliminar variante?', description: `Se eliminará "${label}" de este producto.`, confirmLabel: 'Eliminar', danger: true });
-    if (ok) remove.mutate(id, { onSuccess: () => toast.success('Variante eliminada') });
+    const ok = await confirmAction({ title: '¿Eliminar variante?', description: `Se eliminará "${label}" de forma permanente de este producto.`, confirmLabel: 'Eliminar', danger: true });
+    if (ok) {
+      remove.mutate(id, {
+        onSuccess: () => toast.success('Variante eliminada'),
+        onError: (e) => toast.error(e instanceof Error ? e.message : 'No se pudo eliminar la variante'),
+      });
+    }
   };
 
   return (
@@ -293,6 +318,7 @@ function VariantsSection({ product }: { product: ProductDetailDTO }) {
             image={product.primaryImage}
             canEdit={can('editar_stock')}
             canDelete={can('editar_producto')}
+            saving={savingId === v.id}
             onSave={(p, s) => saveQuick(v.id, p, s)}
             onDelete={() => deleteVariant(v.id, v.attributes.map((a) => a.value).join(' / ') || v.sku)}
           />
@@ -338,9 +364,9 @@ function VariantsSection({ product }: { product: ProductDetailDTO }) {
   );
 }
 
-function VariantCard({ sku, label, price, stock, image, canEdit, canDelete, onSave, onDelete }: {
+function VariantCard({ sku, label, price, stock, image, canEdit, canDelete, saving, onSave, onDelete }: {
   sku: string; label: string; price: number; stock: number; image: string | null;
-  canEdit: boolean; canDelete: boolean; onSave: (price: number, stock: number) => void; onDelete: () => void;
+  canEdit: boolean; canDelete: boolean; saving: boolean; onSave: (price: number, stock: number) => void; onDelete: () => void;
 }) {
   const [p, setP] = useState(String(price));
   const [s, setS] = useState(String(stock));
@@ -362,7 +388,11 @@ function VariantCard({ sku, label, price, stock, image, canEdit, canDelete, onSa
       <label className="flex items-center gap-1 text-xs text-txt-faint">Stock
         <input className="input w-20 py-1" type="number" value={s} onChange={(e) => setS(e.target.value)} disabled={!canEdit} />
       </label>
-      {canEdit && dirty && <button className="btn-accent px-2 py-1 text-xs" onClick={() => onSave(Number(p), Number(s))}>Guardar</button>}
+      {canEdit && dirty && (
+        <button className="btn-accent px-2 py-1 text-xs" onClick={() => onSave(Number(p), Number(s))} disabled={saving}>
+          {saving ? <Spinner className="h-3.5 w-3.5" /> : 'Guardar'}
+        </button>
+      )}
       {!canEdit && <span className="text-xs text-txt-faint">{formatBs(price)}</span>}
       {canDelete && (
         <button className="rounded p-1.5 text-status-out hover:bg-status-out/10" onClick={onDelete} aria-label="Eliminar variante" title="Eliminar variante">

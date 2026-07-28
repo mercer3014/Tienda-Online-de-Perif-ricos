@@ -17,7 +17,9 @@ export const validate =
     try {
       if (schemas.params) req.params = schemas.params.parse(req.params) as typeof req.params;
       if (schemas.query) {
-        // req.query es de solo lectura en Express 5; guardamos el parseado aparte.
+        // req.query solo tiene el getter tipado en Express; guardamos el resultado
+        // ya parseado (con defaults/coerciones de Zod aplicados) aparte en vez de
+        // reasignarlo, y los handlers lo leen con getQuery().
         (req as { validatedQuery?: unknown }).validatedQuery = schemas.query.parse(req.query);
       }
       if (schemas.body) req.body = schemas.body.parse(req.body);

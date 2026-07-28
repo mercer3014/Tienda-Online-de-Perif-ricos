@@ -76,10 +76,13 @@ export async function createOrder(input: CreateOrderInput): Promise<CreatedOrder
       }
     }
 
+    // Calculo con Prisma.Decimal (no numeros flotantes de JS): sumar varios
+    // items con centavos en punto flotante puede acumular error de
+    // redondeo antes de volver a guardarse en columnas Decimal(12,2).
     const itemsData = input.items.map((item) => {
       const v = byId.get(item.variantId)!;
-      const unitPrice = toNumber(v.price);
-      const subtotal = unitPrice * item.quantity;
+      const unitPrice = v.price; // ya es Prisma.Decimal (lectura de la DB)
+      const subtotal = unitPrice.mul(item.quantity);
       return {
         variantId: v.id,
         productName: v.product.name,
@@ -89,7 +92,7 @@ export async function createOrder(input: CreateOrderInput): Promise<CreatedOrder
         subtotal,
       };
     });
-    const total = itemsData.reduce((s, i) => s + i.subtotal, 0);
+    const total = itemsData.reduce((s, i) => s.add(i.subtotal), new Prisma.Decimal(0));
 
     // Reintenta ante colision del numero de pedido (muy improbable, pero el
     // campo es unico y no queremos perder la venta por eso).
@@ -116,10 +119,12 @@ export async function createOrder(input: CreateOrderInput): Promise<CreatedOrder
     return { order, itemsData, total };
   });
 
+  // El mensaje de WhatsApp es solo texto: convertir a number aca (una vez, ya
+  // sumado con precision) en vez de haber operado en float desde el inicio.
   const whatsappText = buildWhatsappText({
     orderNumber: order.orderNumber,
-    items: itemsData,
-    total,
+    items: itemsData.map((i) => ({ ...i, unitPrice: toNumber(i.unitPrice), subtotal: toNumber(i.subtotal) })),
+    total: toNumber(total),
     customerPhone: input.customerPhone,
   });
   const whatsappUrl = buildWhatsappUrl(whatsappText);

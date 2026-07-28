@@ -1,6 +1,6 @@
 import type { CreateVariantInput, QuickUpdateVariantInput, UpdateVariantInput } from '@villano/shared-types';
 import { prisma } from '../../lib/prisma.js';
-import { badRequest, notFound } from '../../lib/errors.js';
+import { badRequest, conflict, notFound } from '../../lib/errors.js';
 import { writeAudit } from '../../lib/audit.js';
 import { toNumber } from '../../lib/money.js';
 
@@ -100,8 +100,13 @@ export async function deleteVariant(id: string, userId: string) {
   });
   if (!existing) throw notFound('Variante no encontrada');
 
-  // Si la variante ya figura en pedidos, no se elimina (integridad historica);
-  // el onDelete SetNull preservaria el snapshot, pero preferimos avisar.
+  // Si la variante ya figura en pedidos, no se elimina (integridad historica
+  // de ventas reales); el onDelete SetNull preservaria el snapshot igual,
+  // pero preferimos avisar y que el staff baje el stock a 0 en su lugar.
+  if (existing._count.orderItems > 0) {
+    throw conflict('No se puede eliminar: esta variante tiene pedidos asociados. Poné el stock en 0 en su lugar.');
+  }
+
   await prisma.variantAttributeValue.deleteMany({ where: { variantId: id } });
   await prisma.productVariant.delete({ where: { id } });
   await writeAudit({

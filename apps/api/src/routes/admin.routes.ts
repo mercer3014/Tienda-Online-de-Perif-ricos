@@ -1,4 +1,4 @@
-import { Router, type Router as RouterType } from 'express';
+import { Router, type Router as RouterType, type Request, type Response, type NextFunction } from 'express';
 import multer from 'multer';
 import { z } from 'zod';
 import {
@@ -18,7 +18,7 @@ import {
   uuidSchema,
 } from '@villano/shared-types';
 import { asyncHandler, ok } from '../lib/http.js';
-import { badRequest } from '../lib/errors.js';
+import { badRequest, forbidden } from '../lib/errors.js';
 import { validate, getQuery } from '../middleware/validate.js';
 import { requireAuth, requirePermission, getAuth } from '../middleware/auth.js';
 import { env } from '../config/env.js';
@@ -36,6 +36,21 @@ import { listAudit } from '../modules/audit/audit.service.js';
 import { listAttributes } from '../modules/attributes/attribute.service.js';
 
 const idParam = z.object({ id: uuidSchema });
+
+/**
+ * La edicion rapida de variante acepta precio Y stock en el mismo body, pero
+ * son permisos distintos (editar_precio / editar_stock). requirePermission
+ * a nivel de ruta solo puede exigir uno; este middleware exige editar_precio
+ * ADEMAS cuando el body trae un cambio de precio, para que un rol pensado
+ * solo para "editar stock" no pueda tocar precios via este endpoint.
+ */
+function requirePriceEditIfChanged(req: Request, _res: Response, next: NextFunction) {
+  if (req.body?.price !== undefined && !getAuth(req).permissions.has('editar_precio')) {
+    return next(forbidden('Requiere el permiso: editar_precio'));
+  }
+  next();
+}
+
 const listQuery = z.object({
   search: z.string().trim().max(120).optional(),
   page: z.coerce.number().int().min(1).default(1),
@@ -117,6 +132,7 @@ adminRouter.patch(
   '/variants/:id/quick',
   requirePermission('editar_stock'),
   validate({ params: idParam, body: quickUpdateVariantSchema }),
+  requirePriceEditIfChanged,
   asyncHandler(async (req, res) => ok(res, await quickUpdateVariant(req.params.id, req.body, getAuth(req).userId))),
 );
 

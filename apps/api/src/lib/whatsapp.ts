@@ -17,7 +17,8 @@ export function buildWhatsappText(params: {
   customerPhone?: string | null;
 }): string {
   const lines: string[] = [];
-  lines.push('*VILLANO GAMER STORE* - Nuevo pedido');
+  lines.push('*VILLANO GAMER STORE*');
+  lines.push('Nuevo pedido');
   lines.push(`Pedido: ${params.orderNumber}`);
   lines.push('');
   params.items.forEach((it, i) => {
@@ -29,7 +30,7 @@ export function buildWhatsappText(params: {
   lines.push(`*TOTAL: ${formatBs(params.total)}*`);
   if (params.customerPhone) lines.push(`Contacto: ${params.customerPhone}`);
   lines.push('');
-  lines.push('Quiero coordinar el pago y la entrega. Gracias!');
+  lines.push('Quiero coordinar el pago y la entrega. ¡Gracias!');
   return lines.join('\n');
 }
 

@@ -45,6 +45,13 @@ export function errorHandler(err: unknown, _req: Request, res: Response, _next: 
     return res.status(400).json({ error: { code: 'BAD_REQUEST', message: 'JSON malformado en la solicitud' } });
   }
 
+  // Origen rechazado por CORS: es un 403 esperado, no un error de servidor
+  // (antes caia al catch-all de abajo como 500 "INTERNAL_ERROR" y ensuciaba
+  // los logs como si fuera un bug cada vez que un bot prueba un origen).
+  if (err instanceof Error && err.message === 'Origen no permitido por CORS') {
+    return res.status(403).json({ error: { code: 'FORBIDDEN', message: err.message } });
+  }
+
   // Errores de subida de archivos (multer).
   const e = err as { name?: string; code?: string; message?: string };
   if (e?.name === 'MulterError') {

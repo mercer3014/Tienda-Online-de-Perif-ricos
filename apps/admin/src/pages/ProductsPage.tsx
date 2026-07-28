@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
-import { ArrowUpDown, ArrowUp, ArrowDown, Pencil, Trash2, Search } from 'lucide-react';
+import { ArrowUpDown, ArrowUp, ArrowDown, Pencil, Trash2, Search, Plus } from 'lucide-react';
 import type { ProductDetailDTO, StockStatus } from '@villano/shared-types';
 import { useAdminProducts, useProductMutations } from '../hooks/admin';
 import { useAuth } from '../store/auth';
@@ -91,7 +91,9 @@ export default function ProductsPage() {
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <h1 className="font-display text-2xl tracking-wide text-txt-primary">Productos</h1>
         {can('crear_producto') && (
-          <button className="btn-primary" onClick={() => setEditing(null)}>+ Nuevo producto</button>
+          <button className="btn-primary inline-flex items-center gap-1.5" onClick={() => setEditing(null)}>
+            <Plus className="h-4 w-4" /> Nuevo producto
+          </button>
         )}
       </div>
 
@@ -200,7 +202,9 @@ export default function ProductsPage() {
 
       <p className="mt-2 text-xs text-txt-faint">{rows.length} producto(s)</p>
 
-      {editing !== undefined && <ProductFormModal productId={editing} onClose={() => setEditing(undefined)} />}
+      {editing !== undefined && (
+        <ProductFormModal productId={editing} onClose={() => setEditing(undefined)} onCreated={(id) => setEditing(id)} />
+      )}
     </div>
   );
 }
