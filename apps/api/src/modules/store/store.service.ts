@@ -28,7 +28,7 @@ export async function getStoreStatus(): Promise<StoreStatusDTO> {
           wazeUrl: location.wazeUrl,
         }
       : null,
-    hours: hoursRows.map((h) => ({ dayOfWeek: h.dayOfWeek, openTime: h.openTime, closeTime: h.closeTime })),
+    hours: hoursRows.map((h) => ({ dayOfWeek: h.dayOfWeek, openTime: h.openTime, closeTime: h.closeTime, isClosed: h.isClosed })),
     whatsappNumber: env.STORE_WHATSAPP_NUMBER,
   };
 }

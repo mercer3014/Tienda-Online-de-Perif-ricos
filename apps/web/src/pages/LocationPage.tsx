@@ -59,7 +59,7 @@ export default function LocationPage() {
         <ul className="divide-y divide-base-border">
           {data.hours.map((h) => {
             const isToday = h.dayOfWeek === todayDow;
-            const closed = h.openTime === h.closeTime;
+            const closed = h.isClosed;
             return (
               <li key={h.dayOfWeek} className={`flex justify-between py-2 ${isToday ? 'text-neon-green' : 'text-txt-muted'}`}>
                 <span className={isToday ? 'font-semibold' : ''}>

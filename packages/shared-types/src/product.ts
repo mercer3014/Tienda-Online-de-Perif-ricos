@@ -27,7 +27,7 @@ export const quickUpdateVariantSchema = z
   });
 
 /** ---- Productos ---- */
-export const createProductSchema = z.object({
+const productBaseSchema = z.object({
   categoryId: uuidSchema,
   name: z.string().trim().min(2).max(180),
   slug: slugSchema,
@@ -39,7 +39,21 @@ export const createProductSchema = z.object({
   status: ProductStatus.default('activo'),
 });
 
-export const updateProductSchema = createProductSchema.partial();
+// El refine se aplica solo cuando ambos precios vienen en el mismo payload
+// (en un PATCH parcial que solo trae originalPrice, el servicio valida contra
+// el basePrice ya guardado en la base).
+const priceOrderRefinement = (data: { basePrice?: number; originalPrice?: number | null }) =>
+  data.originalPrice == null || data.basePrice == null || data.originalPrice > data.basePrice;
+
+export const createProductSchema = productBaseSchema.refine(priceOrderRefinement, {
+  message: 'El precio de oferta (antes) debe ser mayor al precio actual',
+  path: ['originalPrice'],
+});
+
+export const updateProductSchema = productBaseSchema.partial().refine(priceOrderRefinement, {
+  message: 'El precio de oferta (antes) debe ser mayor al precio actual',
+  path: ['originalPrice'],
+});
 
 export const listProductsQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),

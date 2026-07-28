@@ -1,6 +1,6 @@
 import type { CreateProductInput, UpdateProductInput } from '@villano/shared-types';
 import { prisma } from '../../lib/prisma.js';
-import { conflict, notFound } from '../../lib/errors.js';
+import { badRequest, conflict, notFound } from '../../lib/errors.js';
 import { writeAudit } from '../../lib/audit.js';
 import { productInclude, toDetail } from './product.serializer.js';
 import { toNumber } from '../../lib/money.js';
@@ -61,6 +61,15 @@ export async function updateProduct(id: string, input: UpdateProductInput, userI
   const existing = await prisma.product.findUnique({ where: { id } });
   if (!existing) throw notFound('Producto no encontrado');
   if (input.categoryId) await ensureCategory(input.categoryId);
+
+  // El schema Zod solo valida originalPrice > basePrice cuando ambos vienen en
+  // el mismo payload; en un PATCH parcial hay que comparar contra el valor
+  // ya guardado para no permitir una "oferta" que en realidad sube el precio.
+  const nextBasePrice = input.basePrice ?? toNumber(existing.basePrice);
+  const nextOriginalPrice = input.originalPrice === undefined ? toNumber(existing.originalPrice) || null : input.originalPrice;
+  if (nextOriginalPrice != null && nextOriginalPrice <= nextBasePrice) {
+    throw badRequest('El precio de oferta (antes) debe ser mayor al precio actual');
+  }
 
   const updated = await prisma.product.update({
     where: { id },

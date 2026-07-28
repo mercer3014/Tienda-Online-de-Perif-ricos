@@ -14,6 +14,7 @@ export interface BusinessHourDTO {
   dayOfWeek: number; // 0=domingo ... 6=sabado
   openTime: string; // "HH:mm"
   closeTime: string; // "HH:mm"
+  isClosed: boolean;
 }
 
 export interface StoreLocationDTO {

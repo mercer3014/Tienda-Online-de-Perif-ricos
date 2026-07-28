@@ -43,16 +43,27 @@ export function createApp(): Express {
   // Healthcheck.
   app.get('/api/health', (_req, res) => res.json({ data: { status: 'ok', ts: Date.now() } }));
 
-  // Rate limiting en endpoints publicos sensibles (creacion de orden, eventos).
-  const publicWriteLimiter = rateLimit({
+  // Rate limiting en endpoints publicos sensibles. Instancias SEPARADAS: los
+  // eventos de metricas (view/add_to_cart) se disparan varias veces por
+  // minuto con solo navegar el catalogo, y si compartieran contador con
+  // /orders un cliente normal podria agotar el limite y quedar bloqueado
+  // para finalizar su propia compra.
+  const ordersLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 100,
+    max: 30,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: { code: 'RATE_LIMITED', message: 'Demasiados pedidos en poco tiempo. Intenta mas tarde.' } },
+  });
+  const eventsLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 300,
     standardHeaders: true,
     legacyHeaders: false,
     message: { error: { code: 'RATE_LIMITED', message: 'Demasiadas solicitudes. Intenta mas tarde.' } },
   });
-  app.use('/api/orders', publicWriteLimiter);
-  app.use('/api/events', publicWriteLimiter);
+  app.use('/api/orders', ordersLimiter);
+  app.use('/api/events', eventsLimiter);
 
   // Rutas.
   app.use('/api/auth', authRouter);

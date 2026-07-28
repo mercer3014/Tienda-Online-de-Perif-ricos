@@ -135,6 +135,7 @@ model ProductVariant {
   orderItems      OrderItem[]
 
   @@index([productId])
+  @@index([price])
   @@map("product_variants")
 }
 
@@ -205,6 +206,9 @@ model ProductEvent {
   @@index([eventType])
   @@index([createdAt])
   @@index([sessionId])
+  // Compuesto: acelera el dedupe (mismo producto+tipo+sesion en una ventana
+  // de tiempo) y el groupBy de "mas vistos" sin escanear indices sueltos.
+  @@index([productId, eventType, sessionId, createdAt])
   @@map("product_events")
 }
 
