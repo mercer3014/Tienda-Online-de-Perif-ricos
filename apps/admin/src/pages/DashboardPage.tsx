@@ -23,15 +23,15 @@ export default function DashboardPage() {
           <PageLoader />
         ) : data ? (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <StatCard icon={Eye} label="Producto mas visto" value={data.mostViewed[0]?.name ?? '—'} sub={`${data.mostViewed[0]?.count ?? 0} vistas`} />
-            <StatCard icon={ShoppingBag} label="Mas agregado al carrito" value={data.mostAddedToCart[0]?.name ?? '—'} sub={`${data.mostAddedToCart[0]?.count ?? 0} veces`} />
+            <StatCard icon={Eye} label="Producto más visto" value={data.mostViewed[0]?.name ?? '—'} sub={`${data.mostViewed[0]?.count ?? 0} vistas`} />
+            <StatCard icon={ShoppingBag} label="Más agregado al carrito" value={data.mostAddedToCart[0]?.name ?? '—'} sub={`${data.mostAddedToCart[0]?.count ?? 0} veces`} />
             <StatCard icon={AlertTriangle} label="Alertas de stock" value={String(data.lowStock.length)} sub="variantes bajo/agotado" tone="warn" />
             <StatCard icon={TrendingDown} label="Abandono de carrito" value={`${Math.round(data.cartAbandonment.rate * 100)}%`} sub={`${data.cartAbandonment.addToCart} al carrito`} tone="warn" />
           </div>
         ) : null
       ) : (
         <div className="card p-6 text-txt-muted">
-          Usa el menu lateral para gestionar el contenido segun tus permisos.
+          Usá el menú lateral para gestionar el contenido según tus permisos.
         </div>
       )}
 

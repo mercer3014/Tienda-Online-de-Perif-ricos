@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import clsx from 'clsx';
-import { ImageOff } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ImageOff } from 'lucide-react';
 import type { StockStatus } from '@villano/shared-types';
 import { STOCK_STATUS_LABEL } from '@villano/shared-types';
 import { assetUrl } from '../lib/api';
@@ -9,17 +9,39 @@ export { Spinner, Skeleton, ErrorState, EmptyState, PageLoader, Modal, Toaster, 
 export { ConfirmDialog } from './ConfirmDialog';
 
 export function StockPill({ status }: { status: StockStatus }) {
-  const color =
-    status === 'en_stock'
-      ? 'text-status-stock border-status-stock/50 bg-status-stock/10'
-      : status === 'pocas_unidades'
-        ? 'text-status-low border-status-low/50 bg-status-low/10'
-        : 'text-status-out border-status-out/50 bg-status-out/10';
+  const badgeClass =
+    status === 'en_stock' ? 'badge-success' : status === 'pocas_unidades' ? 'badge-warning' : 'badge-danger';
   return (
-    <span className={clsx('inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-semibold', color)}>
+    <span className={clsx('badge', badgeClass)}>
       <span className="h-1.5 w-1.5 rounded-full bg-current" aria-hidden />
       {STOCK_STATUS_LABEL[status]}
     </span>
+  );
+}
+
+/** Control de paginacion compartido (Anterior/Siguiente). No se renderiza si hay una sola pagina. */
+export function Pagination({
+  page,
+  totalPages,
+  onPrev,
+  onNext,
+}: {
+  page: number;
+  totalPages: number;
+  onPrev: () => void;
+  onNext: () => void;
+}) {
+  if (totalPages <= 1) return null;
+  return (
+    <div className="mt-4 flex items-center justify-center gap-3 text-sm">
+      <button className="btn-secondary py-1.5 inline-flex items-center gap-1" disabled={page <= 1} onClick={onPrev}>
+        <ChevronLeft className="h-4 w-4" /> Anterior
+      </button>
+      <span className="text-txt-muted">Página {page} de {totalPages}</span>
+      <button className="btn-secondary py-1.5 inline-flex items-center gap-1" disabled={page >= totalPages} onClick={onNext}>
+        Siguiente <ChevronRight className="h-4 w-4" />
+      </button>
+    </div>
   );
 }
 

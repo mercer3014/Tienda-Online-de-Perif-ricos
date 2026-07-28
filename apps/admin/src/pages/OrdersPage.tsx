@@ -1,12 +1,13 @@
 import { useState } from 'react';
-import { Phone, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Download, Phone } from 'lucide-react';
 import { OrderStatus, ORDER_STATUS_LABEL, type OrderStatus as OrderStatusT, type OrderDTO } from '@villano/shared-types';
 import { useOrders, useOrderStatusMutation } from '../hooks/admin';
 import { useAuth } from '../store/auth';
+import { apiDownload } from '../lib/api';
 import { formatBs, formatDateTime } from '../lib/format';
 import { toast } from '../lib/toast';
 import { confirmAction } from '../lib/confirm';
-import { EmptyState, ErrorState, PageLoader } from '../components/shared';
+import { EmptyState, ErrorState, PageLoader, Pagination } from '../components/shared';
 
 const STATUSES = OrderStatus.options;
 const statusColor: Record<OrderStatusT, string> = {
@@ -22,9 +23,21 @@ export default function OrdersPage() {
   const [page, setPage] = useState(1);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [nonce, setNonce] = useState(0); // fuerza reset del select si se cancela
+  const [exporting, setExporting] = useState(false);
   const query = `page=${page}&pageSize=15${filter ? `&status=${filter}` : ''}`;
   const { data, isLoading, isError, refetch } = useOrders(query);
   const changeStatus = useOrderStatusMutation();
+
+  const exportCsv = async () => {
+    setExporting(true);
+    try {
+      await apiDownload(`/admin/orders/export${filter ? `?status=${filter}` : ''}`, 'pedidos.csv');
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'No se pudo exportar');
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const setStatus = async (o: OrderDTO, status: OrderStatusT) => {
     if (status === o.status) return;
@@ -44,15 +57,20 @@ export default function OrdersPage() {
     <div>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <h1 className="font-display text-2xl tracking-wide text-txt-primary">Pedidos</h1>
-        <select className="input max-w-48" value={filter} onChange={(e) => { setFilter(e.target.value); setPage(1); }}>
-          <option value="">Todos los estados</option>
-          {STATUSES.map((s) => <option key={s} value={s}>{ORDER_STATUS_LABEL[s]}</option>)}
-        </select>
+        <div className="flex items-center gap-2">
+          <select className="input max-w-48" value={filter} onChange={(e) => { setFilter(e.target.value); setPage(1); }}>
+            <option value="">Todos los estados</option>
+            {STATUSES.map((s) => <option key={s} value={s}>{ORDER_STATUS_LABEL[s]}</option>)}
+          </select>
+          <button className="btn-secondary inline-flex items-center gap-1.5 whitespace-nowrap" onClick={exportCsv} disabled={exporting}>
+            <Download className="h-4 w-4" /> Exportar CSV
+          </button>
+        </div>
       </div>
 
       {isError ? <ErrorState message="No se pudieron cargar los pedidos." onRetry={() => refetch()} />
         : isLoading ? <PageLoader />
-        : data && data.items.length === 0 ? <EmptyState title="Sin pedidos" hint="Aun no hay pedidos generados." />
+        : data && data.items.length === 0 ? <EmptyState title="Sin pedidos" hint="Aún no hay pedidos generados." />
         : (
           <>
             <div className="space-y-2">
@@ -81,18 +99,14 @@ export default function OrdersPage() {
                           <span>{formatBs(it.subtotal)}</span>
                         </div>
                       ))}
-                      <p className="mt-1 text-xs text-txt-faint">WhatsApp enviado: {o.whatsappSent ? 'Si' : 'No'}</p>
+                      <p className="mt-1 text-xs text-txt-faint">WhatsApp enviado: {o.whatsappSent ? 'Sí' : 'No'}</p>
                     </div>
                   )}
                 </div>
               ))}
             </div>
-            {data && data.totalPages > 1 && (
-              <div className="mt-4 flex items-center justify-center gap-3 text-sm">
-                <button className="btn-primary py-1.5 inline-flex items-center gap-1" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}><ChevronLeft className="h-4 w-4" /> Anterior</button>
-                <span className="text-txt-muted">Pagina {data.page} de {data.totalPages}</span>
-                <button className="btn-primary py-1.5 inline-flex items-center gap-1" disabled={page >= data.totalPages} onClick={() => setPage((p) => p + 1)}>Siguiente <ChevronRight className="h-4 w-4" /></button>
-              </div>
+            {data && (
+              <Pagination page={data.page} totalPages={data.totalPages} onPrev={() => setPage((p) => p - 1)} onNext={() => setPage((p) => p + 1)} />
             )}
           </>
         )}

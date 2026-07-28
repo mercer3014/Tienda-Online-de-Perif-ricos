@@ -2,18 +2,15 @@ import type { Prisma } from '@prisma/client';
 import type { ListProductsQuery } from '@villano/shared-types';
 import { prisma } from '../../lib/prisma.js';
 import { notFound } from '../../lib/errors.js';
+import { getCategoryDescendantsMap } from '../categories/category.service.js';
 import { productInclude, toDetail, toListItem } from './product.serializer.js';
 
 /** Devuelve el id de la categoria y todos sus descendientes (arbol). */
 async function categoryAndDescendants(rootId: string): Promise<string[]> {
-  const all = await prisma.category.findMany({ select: { id: true, parentId: true } });
-  const childrenOf = new Map<string, string[]>();
-  for (const c of all) {
-    if (!c.parentId) continue;
-    const arr = childrenOf.get(c.parentId) ?? [];
-    arr.push(c.id);
-    childrenOf.set(c.parentId, arr);
-  }
+  // Reusa el mapa id -> hijos cacheado (misma query que arma el arbol de
+  // categorias), en vez de volver a traer TODAS las categorias en cada
+  // listado filtrado por categoria.
+  const childrenOf = await getCategoryDescendantsMap();
   const result: string[] = [];
   const stack = [rootId];
   while (stack.length) {

@@ -8,6 +8,9 @@ export const formatDateTime = (iso: string): string =>
     year: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
-    // Con segundos: en auditoria distingue acciones repetidas en el mismo minuto.
+    // Con segundos: en auditoría distingue acciones repetidas en el mismo minuto.
     second: '2-digit',
   });
+
+/** Mensaje compartido para errores de validación de formularios (login, usuarios, categorías, etc.). */
+export const MSG_DATOS_INVALIDOS = 'Datos inválidos';

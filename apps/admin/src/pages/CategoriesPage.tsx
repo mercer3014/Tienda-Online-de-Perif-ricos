@@ -7,12 +7,16 @@ import { useAuth } from '../store/auth';
 import { toast } from '../lib/toast';
 import { ActionIcon, ErrorState, Field, PageLoader, Spinner } from '../components/shared';
 import { confirmAction } from '../lib/confirm';
+import { MSG_DATOS_INVALIDOS } from '../lib/format';
 
 const slugify = (s: string) =>
   s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
 
 function flatten(nodes: CategoryNode[], depth = 0): { id: string; label: string }[] {
-  return nodes.flatMap((n) => [{ id: n.id, label: `${'— '.repeat(depth)}${n.name}` }, ...flatten(n.children, depth + 1)]);
+  return nodes.flatMap((n) => [
+    { id: n.id, label: `${depth > 0 ? '  '.repeat(depth) + '↳ ' : ''}${n.name}` },
+    ...flatten(n.children, depth + 1),
+  ]);
 }
 
 export default function CategoriesPage() {
@@ -22,7 +26,7 @@ export default function CategoriesPage() {
   const [form, setForm] = useState({ name: '', slug: '', parentId: '', isPromo: false, promoBadgeText: '' });
   const [err, setErr] = useState<string | null>(null);
 
-  if (isError) return <ErrorState message="No se pudieron cargar las categorias." onRetry={() => refetch()} />;
+  if (isError) return <ErrorState message="No se pudieron cargar las categorías." onRetry={() => refetch()} />;
   if (isLoading || !tree) return <PageLoader />;
 
   const submit = async () => {
@@ -34,17 +38,17 @@ export default function CategoriesPage() {
       displayOrder: 0,
     };
     const parsed = createCategorySchema.safeParse(payload);
-    if (!parsed.success) { setErr(parsed.error.errors[0]?.message ?? 'Datos invalidos'); return; }
-    try { await create.mutateAsync(parsed.data); toast.success('Categoria creada'); setForm({ name: '', slug: '', parentId: '', isPromo: false, promoBadgeText: '' }); }
+    if (!parsed.success) { setErr(parsed.error.errors[0]?.message ?? MSG_DATOS_INVALIDOS); return; }
+    try { await create.mutateAsync(parsed.data); toast.success('Categoría creada'); setForm({ name: '', slug: '', parentId: '', isPromo: false, promoBadgeText: '' }); }
     catch (e) { setErr(e instanceof Error ? e.message : 'Error'); }
   };
 
   return (
     <div className="grid gap-6 lg:grid-cols-3">
       <div className="lg:col-span-2">
-        <h1 className="mb-4 font-display text-2xl tracking-wide text-txt-primary">Categorias</h1>
+        <h1 className="mb-4 font-display text-2xl tracking-wide text-txt-primary">Categorías</h1>
         <div className="card p-4">
-          {tree.length === 0 ? <p className="text-txt-muted">No hay categorias.</p> : (
+          {tree.length === 0 ? <p className="text-txt-muted">No hay categorías.</p> : (
             <ul className="space-y-1">{tree.map((n) => <CategoryRow key={n.id} node={n} allNodes={tree} depth={0} />)}</ul>
           )}
         </div>
@@ -52,24 +56,24 @@ export default function CategoriesPage() {
 
       {(can('crear_categoria')) && (
         <div>
-          <h2 className="mb-4 font-display text-lg uppercase tracking-wide text-neon-purple-bright">Nueva categoria</h2>
+          <h2 className="mb-4 font-display text-lg uppercase tracking-wide text-neon-purple-bright">Nueva categoría</h2>
           <div className="card space-y-3 p-4">
             <Field label="Nombre"><input className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value, slug: slugify(e.target.value) })} /></Field>
             <Field label="Slug"><input className="input" value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} /></Field>
-            <Field label="Categoria padre (opcional)">
+            <Field label="Categoría padre (opcional)">
               <select className="input" value={form.parentId} onChange={(e) => setForm({ ...form, parentId: e.target.value })}>
-                <option value="">— Raiz —</option>
+                <option value="">Sin categoría padre (raíz)</option>
                 {flatten(tree).map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
               </select>
             </Field>
             <label className="flex items-center gap-2 text-sm text-txt-muted">
               <input type="checkbox" className="accent-neon-green" checked={form.isPromo} onChange={(e) => setForm({ ...form, isPromo: e.target.checked })} />
-              Promocion especial (banner)
+              Promoción especial (banner)
             </label>
             {form.isPromo && <Field label="Texto del badge"><input className="input" value={form.promoBadgeText} onChange={(e) => setForm({ ...form, promoBadgeText: e.target.value })} placeholder="PROMO" /></Field>}
             {err && <p className="rounded bg-status-out/10 px-3 py-2 text-sm text-status-out">{err}</p>}
             <button className="btn-primary w-full" onClick={submit} disabled={create.isPending}>
-              {create.isPending ? <Spinner className="h-4 w-4" /> : 'Crear categoria'}
+              {create.isPending ? <Spinner className="h-4 w-4" /> : 'Crear categoría'}
             </button>
           </div>
         </div>
@@ -112,8 +116,8 @@ function CategoryRow({ node, allNodes, depth }: { node: CategoryNode; allNodes: 
     });
     if (!ok) return;
     remove.mutate(node.id, {
-      onSuccess: () => toast.success('Categoria desactivada'),
-      onError: (e) => toast.error(e instanceof Error ? e.message : 'No se pudo (tiene productos/subcategorias)'),
+      onSuccess: () => toast.success('Categoría desactivada'),
+      onError: (e) => toast.error(e instanceof Error ? e.message : 'No se pudo (tiene productos/subcategorías)'),
     });
   };
 
@@ -141,7 +145,7 @@ function CategoryRow({ node, allNodes, depth }: { node: CategoryNode; allNodes: 
                   {can('editar_categoria') && <button className="rounded px-2 py-1 text-xs text-txt-muted hover:bg-base-panel hover:text-txt-primary" onClick={togglePromo}>{node.isPromo ? 'Quitar promo' : 'Promo'}</button>}
                   {can('modificar_categoria') && (
                     <select className="rounded border border-base-border bg-base-void px-1 py-0.5 text-xs" value={node.parentId ?? ''} onChange={(e) => reparent(e.target.value)} aria-label="Mover a">
-                      <option value="">Raiz</option>
+                      <option value="">Raíz</option>
                       {parentOptions.map((c) => <option key={c.id} value={c.id}>{c.label.trim()}</option>)}
                     </select>
                   )}
@@ -159,7 +163,7 @@ function CategoryRow({ node, allNodes, depth }: { node: CategoryNode; allNodes: 
                       update.mutate(
                         { id: node.id, body: { active: true } },
                         {
-                          onSuccess: () => toast.success('Categoria reactivada'),
+                          onSuccess: () => toast.success('Categoría reactivada'),
                           onError: (e) => toast.error(e instanceof Error ? e.message : 'Error'),
                         },
                       )

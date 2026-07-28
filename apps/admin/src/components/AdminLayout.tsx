@@ -5,6 +5,7 @@ import {
   LayoutDashboard,
   Package,
   FolderTree,
+  Sliders,
   ShoppingBag,
   BarChart3,
   ClipboardList,
@@ -30,10 +31,11 @@ interface NavItem {
 const NAV: NavItem[] = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, anyOf: ['ver_dashboard'] },
   { to: '/productos', label: 'Productos', icon: Package, anyOf: ['ver_dashboard', 'crear_producto', 'editar_producto'] },
-  { to: '/categorias', label: 'Categorias', icon: FolderTree, anyOf: ['crear_categoria', 'editar_categoria', 'modificar_categoria', 'eliminar_categoria'] },
+  { to: '/categorias', label: 'Categorías', icon: FolderTree, anyOf: ['crear_categoria', 'editar_categoria', 'modificar_categoria', 'eliminar_categoria'] },
+  { to: '/atributos', label: 'Atributos', icon: Sliders, anyOf: ['crear_producto'] },
   { to: '/pedidos', label: 'Pedidos', icon: ShoppingBag, anyOf: ['ver_pedidos'] },
-  { to: '/metricas', label: 'Metricas', icon: BarChart3, anyOf: ['ver_metricas'] },
-  { to: '/auditoria', label: 'Auditoria', icon: ClipboardList, anyOf: ['ver_auditoria'] },
+  { to: '/metricas', label: 'Métricas', icon: BarChart3, anyOf: ['ver_metricas'] },
+  { to: '/auditoria', label: 'Auditoría', icon: ClipboardList, anyOf: ['ver_auditoria'] },
   { to: '/roles', label: 'Roles y permisos', icon: ShieldCheck, anyOf: ['gestionar_roles'] },
   { to: '/usuarios', label: 'Usuarios', icon: Users, anyOf: ['gestionar_usuarios'] },
 ];
@@ -68,7 +70,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
   /** `mini` = colapsado (solo iconos). Solo aplica en desktop. */
   const SidebarContent = ({ mini }: { mini: boolean }) => (
     <div className="flex h-full flex-col">
-      {/* Cabecera: logo + boton colapsar (solo desktop) */}
+      {/* Cabecera: logo + botón para colapsar (solo desktop) */}
       <div className={clsx('flex items-center px-3 py-4', mini ? 'justify-center' : 'justify-between')}>
         {!mini && (
           <p className="font-display text-lg font-bold tracking-wider text-neon-purple-bright">
@@ -85,7 +87,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
         </button>
       </div>
 
-      {/* Navegacion (crece y hace scroll si no entra) */}
+      {/* Navegación (crece y hace scroll si no entra) */}
       <nav className="flex-1 space-y-1 overflow-y-auto px-2">
         {visibleNav.map((n) => {
           const Icon = n.icon;

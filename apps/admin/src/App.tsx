@@ -10,6 +10,7 @@ import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import ProductsPage from './pages/ProductsPage';
 import CategoriesPage from './pages/CategoriesPage';
+import AttributesPage from './pages/AttributesPage';
 import OrdersPage from './pages/OrdersPage';
 import MetricsPage from './pages/MetricsPage';
 import AuditPage from './pages/AuditPage';
@@ -20,7 +21,7 @@ const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } },
 });
 
-/** Requiere sesion valida; opcionalmente un permiso concreto. */
+/** Requiere sesión válida; opcionalmente un permiso concreto. */
 function Guard({ anyOf, children }: { anyOf?: PermissionKey[]; children: React.ReactNode }) {
   const { user, loading, can } = useAuth();
   if (loading) return <PageLoader />;
@@ -29,7 +30,7 @@ function Guard({ anyOf, children }: { anyOf?: PermissionKey[]; children: React.R
     return (
       <div className="card p-8 text-center">
         <h2 className="mb-2 font-display text-lg text-status-out">Sin permiso</h2>
-        <p className="text-txt-muted">Tu rol no tiene acceso a esta seccion.</p>
+        <p className="text-txt-muted">Tu rol no tiene acceso a esta sección.</p>
       </div>
     );
   }
@@ -48,6 +49,7 @@ export default function App() {
           <Route path="/" element={<Guard anyOf={['ver_dashboard']}><DashboardPage /></Guard>} />
           <Route path="/productos" element={<Guard anyOf={['ver_dashboard', 'crear_producto', 'editar_producto']}><ProductsPage /></Guard>} />
           <Route path="/categorias" element={<Guard anyOf={['crear_categoria', 'editar_categoria', 'modificar_categoria', 'eliminar_categoria']}><CategoriesPage /></Guard>} />
+          <Route path="/atributos" element={<Guard anyOf={['crear_producto']}><AttributesPage /></Guard>} />
           <Route path="/pedidos" element={<Guard anyOf={['ver_pedidos']}><OrdersPage /></Guard>} />
           <Route path="/metricas" element={<Guard anyOf={['ver_metricas']}><MetricsPage /></Guard>} />
           <Route path="/auditoria" element={<Guard anyOf={['ver_auditoria']}><AuditPage /></Guard>} />

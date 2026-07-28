@@ -159,6 +159,24 @@ export async function listOrders(params: { status?: OrderStatus; page: number; p
   return { items: rows.map(serializeOrder), total };
 }
 
+/** Version sin paginar de listOrders, para exportacion a CSV. Tope duro de 5000 filas. */
+export async function listOrdersForExport(params: { status?: OrderStatus; from?: string; to?: string }) {
+  const where: Prisma.OrderWhereInput = {};
+  if (params.status) where.status = params.status;
+  if (params.from || params.to) {
+    where.createdAt = {};
+    if (params.from) where.createdAt.gte = new Date(params.from);
+    if (params.to) where.createdAt.lte = new Date(params.to);
+  }
+  const rows = await prisma.order.findMany({
+    where,
+    include: { items: true },
+    orderBy: { createdAt: 'desc' },
+    take: 5000,
+  });
+  return rows.map((o) => ({ ...serializeOrder(o), itemCount: o.items.reduce((s, i) => s + i.quantity, 0) }));
+}
+
 export async function getOrder(id: string): Promise<OrderDTO> {
   const order = await prisma.order.findUnique({ where: { id }, include: { items: true } });
   if (!order) throw notFound('Pedido no encontrado');

@@ -4,6 +4,7 @@ import { LogIn } from 'lucide-react';
 import { loginSchema } from '@villano/shared-types';
 import { useAuth } from '../store/auth';
 import { Spinner } from '../components/ui';
+import { MSG_DATOS_INVALIDOS } from '../lib/format';
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -18,7 +19,7 @@ export default function LoginPage() {
     setError(null);
     const parsed = loginSchema.safeParse({ email, password });
     if (!parsed.success) {
-      setError(parsed.error.errors[0]?.message ?? 'Datos invalidos');
+      setError(parsed.error.errors[0]?.message ?? MSG_DATOS_INVALIDOS);
       return;
     }
     setLoading(true);
@@ -26,7 +27,7 @@ export default function LoginPage() {
       await login(parsed.data.email, parsed.data.password);
       navigate('/');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo iniciar sesion');
+      setError(err instanceof Error ? err.message : 'No se pudo iniciar sesión');
     } finally {
       setLoading(false);
     }
@@ -53,7 +54,7 @@ export default function LoginPage() {
           </div>
           <div>
             <label htmlFor="password" className="mb-1 block text-xs font-semibold uppercase tracking-wide text-txt-muted">
-              Contrasena
+              Contraseña
             </label>
             <input
               id="password" type="password" autoComplete="current-password" value={password}

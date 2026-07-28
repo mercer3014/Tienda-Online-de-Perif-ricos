@@ -40,7 +40,15 @@ function buildTree(rows: Row[], counts: Map<string, number>): CategoryNode[] {
   return roots;
 }
 
-export async function getCategoryTree(opts: { includeInactive?: boolean } = {}): Promise<CategoryNode[]> {
+// El arbol cambia con muy poca frecuencia (altas/bajas/reordenes de categoria
+// son acciones de staff, no de trafico de usuarios), pero se lee en CADA
+// request publica sin autenticar. Cachearlo brevemente evita 2 queries
+// completas por visita al catalogo. Solo se cachea la version publica
+// (includeInactive=false); la version admin siempre lee fresco.
+const TREE_CACHE_TTL_MS = 60_000;
+let treeCache: { data: CategoryNode[]; expiresAt: number } | null = null;
+
+async function buildTreeFromDb(opts: { includeInactive?: boolean }): Promise<CategoryNode[]> {
   const rows = await prisma.category.findMany({
     where: opts.includeInactive ? {} : { active: true },
     orderBy: { displayOrder: 'asc' },
@@ -53,6 +61,43 @@ export async function getCategoryTree(opts: { includeInactive?: boolean } = {}):
   });
   const counts = new Map(grouped.map((g) => [g.categoryId, g._count._all]));
   return buildTree(rows as Row[], counts);
+}
+
+export async function getCategoryTree(opts: { includeInactive?: boolean } = {}): Promise<CategoryNode[]> {
+  if (opts.includeInactive) return buildTreeFromDb(opts);
+
+  const now = Date.now();
+  if (treeCache && treeCache.expiresAt > now) return treeCache.data;
+
+  const data = await buildTreeFromDb(opts);
+  treeCache = { data, expiresAt: now + TREE_CACHE_TTL_MS };
+  return data;
+}
+
+// Mapa id -> hijos directos de TODAS las categorias (activas e inactivas), usado
+// para resolver "categoria y descendientes" en filtros de listado. Se cachea con
+// la misma estrategia que el arbol para no repetir la query en cada request.
+let descendantsMapCache: { data: Map<string, string[]>; expiresAt: number } | null = null;
+
+export async function getCategoryDescendantsMap(): Promise<Map<string, string[]>> {
+  const now = Date.now();
+  if (descendantsMapCache && descendantsMapCache.expiresAt > now) return descendantsMapCache.data;
+
+  const all = await prisma.category.findMany({ select: { id: true, parentId: true } });
+  const childrenOf = new Map<string, string[]>();
+  for (const c of all) {
+    if (!c.parentId) continue;
+    const arr = childrenOf.get(c.parentId) ?? [];
+    arr.push(c.id);
+    childrenOf.set(c.parentId, arr);
+  }
+  descendantsMapCache = { data: childrenOf, expiresAt: now + TREE_CACHE_TTL_MS };
+  return childrenOf;
+}
+
+function invalidateCategoryCache(): void {
+  treeCache = null;
+  descendantsMapCache = null;
 }
 
 async function assertSlugFree(slug: string, exceptId?: string) {
@@ -74,6 +119,7 @@ export async function createCategory(input: CreateCategoryInput, userId: string)
     },
   });
   await writeAudit({ userId, action: 'crear_categoria', entityType: 'category', entityId: cat.id, newValue: { name: cat.name, slug: cat.slug } });
+  invalidateCategoryCache();
   return cat;
 }
 
@@ -96,6 +142,7 @@ export async function updateCategory(id: string, input: UpdateCategoryInput, use
     oldValue: { name: existing.name, slug: existing.slug, parentId: existing.parentId, isPromo: existing.isPromo, active: existing.active },
     newValue: { name: cat.name, slug: cat.slug, parentId: cat.parentId, isPromo: cat.isPromo, active: cat.active },
   });
+  invalidateCategoryCache();
   return cat;
 }
 
@@ -128,6 +175,7 @@ export async function moveCategory(id: string, input: MoveCategoryInput, userId:
     oldValue: { parentId: existing.parentId, displayOrder: existing.displayOrder },
     newValue: { parentId: cat.parentId, displayOrder: cat.displayOrder },
   });
+  invalidateCategoryCache();
   return cat;
 }
 
@@ -148,5 +196,6 @@ export async function softDeleteCategory(id: string, userId: string) {
 
   const cat = await prisma.category.update({ where: { id }, data: { active: false } });
   await writeAudit({ userId, action: 'eliminar_categoria', entityType: 'category', entityId: id, oldValue: { active: true }, newValue: { active: false } });
+  invalidateCategoryCache();
   return cat;
 }

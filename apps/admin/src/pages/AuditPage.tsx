@@ -1,11 +1,13 @@
 import { useState } from 'react';
-import { ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowRight, Download } from 'lucide-react';
 import { useAudit, useUsers } from '../hooks/admin';
 import { useAuth } from '../store/auth';
+import { apiDownload } from '../lib/api';
 import { formatDateTime } from '../lib/format';
-import { EmptyState, ErrorState, PageLoader } from '../components/shared';
+import { toast } from '../lib/toast';
+import { EmptyState, ErrorState, PageLoader, Pagination } from '../components/shared';
 
-const ENTITY_TYPES = ['product', 'variant', 'category', 'order', 'role', 'user'];
+const ENTITY_TYPES = ['product', 'variant', 'category', 'attribute', 'attribute_value', 'order', 'role', 'user'];
 
 // Etiquetas legibles (en vez de claves crudas).
 const ACTION_LABEL: Record<string, string> = {
@@ -24,10 +26,15 @@ const ACTION_LABEL: Record<string, string> = {
   cambiar_estado_pedido: 'Cambió el estado de un pedido',
   gestionar_roles: 'Actualizó permisos de un rol',
   gestionar_usuarios: 'Gestionó un usuario',
+  crear_atributo: 'Creó un atributo',
+  eliminar_atributo: 'Eliminó un atributo',
+  crear_valor_atributo: 'Creó un valor de atributo',
+  eliminar_valor_atributo: 'Eliminó un valor de atributo',
 };
 const ENTITY_LABEL: Record<string, string> = {
   product: 'Producto', variant: 'Variante', category: 'Categoría',
   order: 'Pedido', role: 'Rol', user: 'Usuario',
+  attribute: 'Atributo', attribute_value: 'Valor de atributo',
 };
 const FIELD_LABEL: Record<string, string> = {
   name: 'Nombre', slug: 'Slug', status: 'Estado', basePrice: 'Precio base',
@@ -69,6 +76,7 @@ export default function AuditPage() {
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
   const [page, setPage] = useState(1);
+  const [exporting, setExporting] = useState(false);
 
   const { data: users } = useUsers();
   const q = new URLSearchParams({ page: String(page), pageSize: '20' });
@@ -79,9 +87,30 @@ export default function AuditPage() {
   const { data, isLoading, isError, refetch } = useAudit(q.toString());
   const canFilterUser = can('gestionar_usuarios');
 
+  const exportCsv = async () => {
+    const eq = new URLSearchParams();
+    if (userId) eq.set('userId', userId);
+    if (entityType) eq.set('entityType', entityType);
+    if (from) eq.set('from', new Date(from).toISOString());
+    if (to) eq.set('to', new Date(to).toISOString());
+    setExporting(true);
+    try {
+      await apiDownload(`/admin/audit/export${eq.toString() ? `?${eq}` : ''}`, 'auditoria.csv');
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'No se pudo exportar');
+    } finally {
+      setExporting(false);
+    }
+  };
+
   return (
     <div>
-      <h1 className="mb-1 font-display text-2xl tracking-wide text-txt-primary">Auditoría</h1>
+      <div className="mb-1 flex flex-wrap items-center justify-between gap-3">
+        <h1 className="font-display text-2xl tracking-wide text-txt-primary">Auditoría</h1>
+        <button className="btn-secondary inline-flex items-center gap-1.5 whitespace-nowrap" onClick={exportCsv} disabled={exporting}>
+          <Download className="h-4 w-4" /> Exportar CSV
+        </button>
+      </div>
       <p className="mb-4 text-sm text-txt-muted">Historial de cambios del sistema.</p>
 
       <div className="card mb-4 grid gap-3 p-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -155,12 +184,8 @@ export default function AuditPage() {
               })}
             </div>
 
-            {data && data.totalPages > 1 && (
-              <div className="mt-4 flex items-center justify-center gap-3 text-sm">
-                <button className="btn-secondary py-1.5 inline-flex items-center gap-1" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}><ChevronLeft className="h-4 w-4" /> Anterior</button>
-                <span className="text-txt-muted">Página {data.page} de {data.totalPages}</span>
-                <button className="btn-secondary py-1.5 inline-flex items-center gap-1" disabled={page >= data.totalPages} onClick={() => setPage((p) => p + 1)}>Siguiente <ChevronRight className="h-4 w-4" /></button>
-              </div>
+            {data && (
+              <Pagination page={data.page} totalPages={data.totalPages} onPrev={() => setPage((p) => p - 1)} onNext={() => setPage((p) => p + 1)} />
             )}
           </>
         )}

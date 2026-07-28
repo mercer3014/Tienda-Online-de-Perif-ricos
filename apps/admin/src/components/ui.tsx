@@ -58,7 +58,7 @@ export function Modal({ title, onClose, children, wide }: { title: string; onClo
         aria-label={title}
       >
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="font-display text-lg uppercase tracking-wide text-neon-purple-bright">{title}</h2>
+          <h2 className="font-display text-lg tracking-wide text-txt-primary">{title}</h2>
           <button onClick={onClose} className="rounded p-1 text-txt-muted hover:text-neon-purple" aria-label="Cerrar">
             <X className="h-5 w-5" />
           </button>

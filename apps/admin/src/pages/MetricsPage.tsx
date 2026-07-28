@@ -4,24 +4,24 @@ import { ErrorState, PageLoader, StockPill } from '../components/shared';
 export default function MetricsPage() {
   const { data, isLoading, isError, refetch } = useMetrics();
 
-  if (isError) return <ErrorState message="No se pudieron cargar las metricas." onRetry={() => refetch()} />;
+  if (isError) return <ErrorState message="No se pudieron cargar las métricas." onRetry={() => refetch()} />;
   if (isLoading || !data) return <PageLoader />;
 
   return (
     <div className="space-y-6">
-      <h1 className="font-display text-2xl tracking-wide text-txt-primary">Metricas</h1>
+      <h1 className="font-display text-2xl tracking-wide text-txt-primary">Métricas</h1>
 
       <div className="grid gap-4 lg:grid-cols-3">
-        <RankCard title="Mas vistos" rows={data.mostViewed} unit="vistas" />
-        <RankCard title="Mas agregados al carrito" rows={data.mostAddedToCart} unit="veces" />
-        <RankCard title="Mas pedidos" rows={data.mostOrdered} unit="uds" />
+        <RankCard title="Más vistos" rows={data.mostViewed} unit="vistas" />
+        <RankCard title="Más agregados al carrito" rows={data.mostAddedToCart} unit="veces" />
+        <RankCard title="Más pedidos" rows={data.mostOrdered} unit="uds" />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
         <div className="card p-4">
           <h2 className="mb-3 font-display text-sm uppercase tracking-wide text-neon-purple-bright">Alertas de stock</h2>
           {data.lowStock.length === 0 ? (
-            <p className="text-sm text-txt-muted">Sin alertas. Todo el stock esta saludable.</p>
+            <p className="text-sm text-txt-muted">Sin alertas. Todo el stock está saludable.</p>
           ) : (
             <ul className="space-y-2">
               {data.lowStock.map((v) => (
@@ -63,7 +63,7 @@ function RankCard({ title, rows, unit }: { title: string; rows: { productId: str
     <div className="card p-4">
       <h2 className="mb-3 font-display text-sm uppercase tracking-wide text-neon-purple-bright">{title}</h2>
       {rows.length === 0 ? (
-        <p className="text-sm text-txt-muted">Sin datos aun.</p>
+        <p className="text-sm text-txt-muted">Sin datos aún.</p>
       ) : (
         <ol className="space-y-2">
           {rows.map((r, i) => (

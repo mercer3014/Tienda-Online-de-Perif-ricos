@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { Pencil, Trash2 } from 'lucide-react';
+import { Pencil, Plus, Trash2 } from 'lucide-react';
 import { createUserSchema, updateUserSchema } from '@villano/shared-types';
 import { useRoles, useUsers, useUserMutations, type AdminUser } from '../hooks/admin';
-import { formatDateTime } from '../lib/format';
+import { formatDateTime, MSG_DATOS_INVALIDOS } from '../lib/format';
 import { toast } from '../lib/toast';
 import { confirmAction } from '../lib/confirm';
 import { ActionIcon, EmptyState, ErrorState, Field, Modal, PageLoader, Spinner } from '../components/shared';
@@ -31,7 +31,7 @@ export default function UsersPage() {
     <div>
       <div className="mb-4 flex items-center justify-between">
         <h1 className="font-display text-2xl tracking-wide text-txt-primary">Usuarios</h1>
-        <button className="btn-primary" onClick={() => setEditing(null)}>+ Nuevo usuario</button>
+        <button className="btn-primary inline-flex items-center gap-2" onClick={() => setEditing(null)}><Plus className="h-4 w-4" /> Nuevo usuario</button>
       </div>
 
       {isError ? <ErrorState message="No se pudieron cargar los usuarios." onRetry={() => refetch()} />
@@ -84,12 +84,12 @@ function UserModal({ user, roles, onClose }: { user: AdminUser | null; roles: { 
         const body: Record<string, unknown> = { name: form.name, email: form.email, roleId: form.roleId, active: form.active };
         if (form.password) body.password = form.password;
         const parsed = updateUserSchema.safeParse(body);
-        if (!parsed.success) { setErr(parsed.error.errors[0]?.message ?? 'Datos invalidos'); return; }
+        if (!parsed.success) { setErr(parsed.error.errors[0]?.message ?? MSG_DATOS_INVALIDOS); return; }
         await update.mutateAsync({ id: user!.id, body: parsed.data });
         toast.success('Usuario actualizado');
       } else {
         const parsed = createUserSchema.safeParse(form);
-        if (!parsed.success) { setErr(parsed.error.errors[0]?.message ?? 'Datos invalidos'); return; }
+        if (!parsed.success) { setErr(parsed.error.errors[0]?.message ?? MSG_DATOS_INVALIDOS); return; }
         await create.mutateAsync(parsed.data);
         toast.success('Usuario creado');
       }
@@ -103,7 +103,7 @@ function UserModal({ user, roles, onClose }: { user: AdminUser | null; roles: { 
       <div className="space-y-3">
         <Field label="Nombre"><input className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></Field>
         <Field label="Email"><input className="input" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></Field>
-        <Field label={isEdit ? 'Nueva contrasena (opcional)' : 'Contrasena'}>
+        <Field label={isEdit ? 'Nueva contraseña (opcional)' : 'Contraseña'}>
           <input className="input" type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} autoComplete="new-password" />
         </Field>
         <Field label="Rol">

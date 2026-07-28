@@ -1,6 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type {
   CategoryNode,
+  CreateAttributeInput,
+  CreateAttributeValueInput,
   CreateCategoryInput,
   UpdateCategoryInput,
   CreateProductInput,
@@ -139,6 +141,30 @@ export function useImageMutations(productId: string | null) {
 
 export const useAdminAttributes = () =>
   useQuery({ queryKey: ['admin-attributes'], queryFn: () => apiFetch<AttributeDTO[]>('/admin/attributes') });
+
+export function useAttributeMutations() {
+  const qc = useQueryClient();
+  const invalidate = () => qc.invalidateQueries({ queryKey: ['admin-attributes'] });
+  return {
+    create: useMutation({
+      mutationFn: (b: CreateAttributeInput) => apiFetch<AttributeDTO>('/admin/attributes', { method: 'POST', body: b }),
+      onSuccess: invalidate,
+    }),
+    remove: useMutation({
+      mutationFn: (id: string) => apiFetch(`/admin/attributes/${id}`, { method: 'DELETE' }),
+      onSuccess: invalidate,
+    }),
+    createValue: useMutation({
+      mutationFn: ({ attributeId, body }: { attributeId: string; body: CreateAttributeValueInput }) =>
+        apiFetch(`/admin/attributes/${attributeId}/values`, { method: 'POST', body }),
+      onSuccess: invalidate,
+    }),
+    removeValue: useMutation({
+      mutationFn: (valueId: string) => apiFetch(`/admin/attribute-values/${valueId}`, { method: 'DELETE' }),
+      onSuccess: invalidate,
+    }),
+  };
+}
 
 // ------------------------------ Categorias ---------------------------------
 export const useAdminCategoryTree = () =>

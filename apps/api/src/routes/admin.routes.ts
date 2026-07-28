@@ -2,6 +2,8 @@ import { Router, type Router as RouterType, type Request, type Response, type Ne
 import multer from 'multer';
 import { z } from 'zod';
 import {
+  createAttributeSchema,
+  createAttributeValueSchema,
   createCategorySchema,
   createProductSchema,
   createUserSchema,
@@ -28,12 +30,19 @@ import { getProductById } from '../modules/products/product.service.js';
 import { createVariant, deleteVariant, quickUpdateVariant, updateVariant } from '../modules/variants/variant.service.js';
 import { deleteImage, processAndStoreImage, setPrimaryImage } from '../modules/images/image.service.js';
 import { getCategoryTree, createCategory, updateCategory, moveCategory, softDeleteCategory } from '../modules/categories/category.service.js';
-import { changeOrderStatus, getOrder, listOrders } from '../modules/orders/order.service.js';
+import { changeOrderStatus, getOrder, listOrders, listOrdersForExport } from '../modules/orders/order.service.js';
 import { listRolesWithMatrix, listPermissions, updateRolePermissions } from '../modules/roles/role.service.js';
 import { createUser, deactivateUser, listUsers, updateUser } from '../modules/users/user.service.js';
 import { getMetricsSummary } from '../modules/metrics/metrics.service.js';
-import { listAudit } from '../modules/audit/audit.service.js';
-import { listAttributes } from '../modules/attributes/attribute.service.js';
+import { listAudit, listAuditForExport } from '../modules/audit/audit.service.js';
+import {
+  createAttribute,
+  createAttributeValue,
+  deleteAttribute,
+  deleteAttributeValue,
+  listAttributes,
+} from '../modules/attributes/attribute.service.js';
+import { toCsv } from '../lib/csv.js';
 
 const idParam = z.object({ id: uuidSchema });
 
@@ -217,6 +226,42 @@ adminRouter.get(
   }),
 );
 
+const exportOrdersQuery = z.object({
+  status: OrderStatus.optional(),
+  from: z.string().datetime().optional(),
+  to: z.string().datetime().optional(),
+});
+adminRouter.get(
+  '/orders/export',
+  requirePermission('ver_pedidos'),
+  validate({ query: exportOrdersQuery }),
+  asyncHandler(async (req, res) => {
+    const q = getQuery<z.infer<typeof exportOrdersQuery>>(req);
+    const rows = await listOrdersForExport(q);
+    const csv = toCsv(
+      rows.map((o) => ({
+        orderNumber: o.orderNumber,
+        createdAt: o.createdAt,
+        status: o.status,
+        customerPhone: o.customerPhone ?? '',
+        totalAmount: o.totalAmount,
+        itemCount: o.itemCount,
+      })),
+      [
+        { key: 'orderNumber', header: 'Numero de pedido' },
+        { key: 'createdAt', header: 'Fecha' },
+        { key: 'status', header: 'Estado' },
+        { key: 'customerPhone', header: 'Telefono' },
+        { key: 'totalAmount', header: 'Total' },
+        { key: 'itemCount', header: 'Cantidad de items' },
+      ],
+    );
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename="pedidos.csv"');
+    res.send(csv);
+  }),
+);
+
 adminRouter.get(
   '/orders/:id',
   requirePermission('ver_pedidos'),
@@ -286,6 +331,40 @@ adminRouter.get(
   asyncHandler(async (_req, res) => ok(res, await listAttributes())),
 );
 
+adminRouter.post(
+  '/attributes',
+  requirePermission('crear_producto'),
+  validate({ body: createAttributeSchema }),
+  asyncHandler(async (req, res) => ok(res, await createAttribute(req.body, getAuth(req).userId), 201)),
+);
+
+adminRouter.delete(
+  '/attributes/:id',
+  requirePermission('crear_producto'),
+  validate({ params: idParam }),
+  asyncHandler(async (req, res) => {
+    await deleteAttribute(req.params.id, getAuth(req).userId);
+    ok(res, { success: true });
+  }),
+);
+
+adminRouter.post(
+  '/attributes/:id/values',
+  requirePermission('crear_producto'),
+  validate({ params: idParam, body: createAttributeValueSchema }),
+  asyncHandler(async (req, res) => ok(res, await createAttributeValue(req.params.id, req.body, getAuth(req).userId), 201)),
+);
+
+adminRouter.delete(
+  '/attribute-values/:id',
+  requirePermission('crear_producto'),
+  validate({ params: idParam }),
+  asyncHandler(async (req, res) => {
+    await deleteAttributeValue(req.params.id, getAuth(req).userId);
+    ok(res, { success: true });
+  }),
+);
+
 // --------------------------------- Metricas --------------------------------
 adminRouter.get(
   '/metrics/summary',
@@ -308,5 +387,40 @@ adminRouter.get(
     const q = getQuery<z.infer<typeof auditQuery>>(req);
     const { items, total } = await listAudit(q);
     ok(res, { items, page: q.page, pageSize: q.pageSize, total, totalPages: Math.ceil(total / q.pageSize) });
+  }),
+);
+
+const exportAuditQuery = z.object({
+  userId: uuidSchema.optional(),
+  entityType: z.string().max(60).optional(),
+  from: z.string().datetime().optional(),
+  to: z.string().datetime().optional(),
+});
+adminRouter.get(
+  '/audit/export',
+  requirePermission('ver_auditoria'),
+  validate({ query: exportAuditQuery }),
+  asyncHandler(async (req, res) => {
+    const q = getQuery<z.infer<typeof exportAuditQuery>>(req);
+    const rows = await listAuditForExport(q);
+    const csv = toCsv(
+      rows.map((r) => ({
+        createdAt: r.createdAt,
+        user: r.user ? `${r.user.name} <${r.user.email}>` : 'Sistema',
+        action: r.action,
+        entityType: r.entityType,
+        entityId: r.entityId ?? '',
+      })),
+      [
+        { key: 'createdAt', header: 'Fecha' },
+        { key: 'user', header: 'Usuario' },
+        { key: 'action', header: 'Accion' },
+        { key: 'entityType', header: 'Tipo de entidad' },
+        { key: 'entityId', header: 'Id de entidad' },
+      ],
+    );
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename="auditoria.csv"');
+    res.send(csv);
   }),
 );

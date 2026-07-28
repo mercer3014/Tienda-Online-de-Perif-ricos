@@ -52,7 +52,7 @@ export default function RolesPage() {
         {save.isPending && <Spinner />}
       </div>
       <p className="mb-4 text-sm text-txt-muted">
-        Marca que puede hacer cada rol. Los cambios se aplican de inmediato en el backend.
+        Marcá qué puede hacer cada rol. Los cambios se aplican de inmediato en el backend.
       </p>
 
       <div className="overflow-x-auto">

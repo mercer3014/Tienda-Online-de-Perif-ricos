@@ -115,6 +115,7 @@ function slugify(s: string): string {
 
 async function main() {
   console.log('Seed: limpiando datos previos...');
+  await prisma.auditLog.deleteMany();
   await prisma.orderItem.deleteMany();
   await prisma.order.deleteMany();
   await prisma.productEvent.deleteMany();
