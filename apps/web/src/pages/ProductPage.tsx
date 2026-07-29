@@ -146,8 +146,8 @@ export default function ProductPage() {
 
           {product.description && <p className="mt-4 text-txt-muted">{product.description}</p>}
 
-          {/* Selector de variantes */}
-          {product.variants.length > 0 && (
+          {/* Selector de variantes (solo si hay mas de una opcion entre las que elegir) */}
+          {product.variants.length > 1 && (
             <div className="mt-6">
               <h2 className="mb-2 font-display text-sm uppercase tracking-wide text-neon-purple-bright">
                 Elige una opción

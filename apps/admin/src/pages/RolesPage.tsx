@@ -72,8 +72,8 @@ export default function RolesPage() {
             {permissions.map((perm) => (
               <tr key={perm.permissionId} className="border-t border-base-border/50">
                 <td className="sticky left-0 bg-base-black p-2">
-                  <div className="font-mono text-xs text-neon-purple-bright">{perm.key}</div>
-                  <div className="text-xs text-txt-faint">{perm.description}</div>
+                  <div className="text-sm font-medium text-txt-primary">{perm.description}</div>
+                  <div className="font-mono text-[10px] text-txt-faint">{perm.key}</div>
                 </td>
                 {roles.map((r) => (
                   <td key={r.id} className="p-2 text-center">
