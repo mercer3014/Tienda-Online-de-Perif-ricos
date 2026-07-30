@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { uuidSchema } from './common.js';
-import { OrderStatus } from './enums.js';
+import { DeliveryMethod, OrderStatus } from './enums.js';
 
 /** Un item del carrito enviado al crear la orden. El backend recalcula precios. */
 export const orderItemInputSchema = z.object({
@@ -9,12 +9,19 @@ export const orderItemInputSchema = z.object({
 });
 
 export const createOrderSchema = z.object({
+  customerName: z
+    .string()
+    .trim()
+    .max(120)
+    .optional()
+    .or(z.literal('').transform(() => undefined)),
   customerPhone: z
     .string()
     .trim()
     .regex(/^[0-9+\-\s]{6,20}$/, 'Telefono invalido')
     .optional()
     .or(z.literal('').transform(() => undefined)),
+  deliveryMethod: DeliveryMethod.default('retiro'),
   items: z.array(orderItemInputSchema).min(1, 'El carrito esta vacio'),
 });
 export type CreateOrderInput = z.infer<typeof createOrderSchema>;
@@ -37,7 +44,9 @@ export interface OrderItemDTO {
 export interface OrderDTO {
   id: string;
   orderNumber: string;
+  customerName: string | null;
   customerPhone: string | null;
+  deliveryMethod: DeliveryMethod;
   totalAmount: number;
   status: OrderStatus;
   whatsappSent: boolean;

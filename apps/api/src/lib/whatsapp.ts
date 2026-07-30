@@ -1,3 +1,5 @@
+import type { DeliveryMethod } from '@villano/shared-types';
+import { DELIVERY_METHOD_LABEL } from '@villano/shared-types';
 import { env } from '../config/env.js';
 import { formatBs } from './money.js';
 
@@ -14,7 +16,9 @@ export function buildWhatsappText(params: {
   orderNumber: string;
   items: WaItem[];
   total: number;
+  customerName?: string | null;
   customerPhone?: string | null;
+  deliveryMethod: DeliveryMethod;
 }): string {
   const lines: string[] = [];
   lines.push('*VILLANO GAMER STORE*');
@@ -28,6 +32,8 @@ export function buildWhatsappText(params: {
   });
   lines.push('');
   lines.push(`*TOTAL: ${formatBs(params.total)}*`);
+  lines.push(`Entrega: ${DELIVERY_METHOD_LABEL[params.deliveryMethod]}`);
+  if (params.customerName) lines.push(`Nombre: ${params.customerName}`);
   if (params.customerPhone) lines.push(`Contacto: ${params.customerPhone}`);
   lines.push('');
   lines.push('Quiero coordinar el pago y la entrega. ¡Gracias!');

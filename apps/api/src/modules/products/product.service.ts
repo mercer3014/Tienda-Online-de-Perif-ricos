@@ -66,6 +66,11 @@ export async function listProducts(q: ListProductsQuery, opts: { includeInactive
     }
   }
 
+  // Solo productos con al menos una variante en stock.
+  if (q.inStock) {
+    and.push({ variants: { some: { stockQuantity: { gt: 0 } } } });
+  }
+
   if (and.length) where.AND = and;
 
   const orderBy: Prisma.ProductOrderByWithRelationInput =

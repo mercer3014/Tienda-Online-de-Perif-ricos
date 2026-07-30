@@ -30,6 +30,11 @@ enum OrderStatus {
   cancelado
 }
 
+enum DeliveryMethod {
+  retiro
+  delivery
+}
+
 enum ProductEventType {
   view
   add_to_cart
@@ -155,13 +160,15 @@ model VariantAttributeValue {
 // ------------------------------- Pedidos ----------------------------------
 
 model Order {
-  id            String      @id @default(uuid()) @db.Uuid
-  orderNumber   String      @unique @map("order_number") @db.VarChar(30)
-  customerPhone String?     @map("customer_phone") @db.VarChar(30)
-  totalAmount   Decimal     @map("total_amount") @db.Decimal(12, 2)
-  status        OrderStatus @default(pendiente)
-  whatsappSent  Boolean     @default(false) @map("whatsapp_sent")
-  createdAt     DateTime    @default(now()) @map("created_at")
+  id             String         @id @default(uuid()) @db.Uuid
+  orderNumber    String         @unique @map("order_number") @db.VarChar(30)
+  customerName   String?        @map("customer_name") @db.VarChar(120)
+  customerPhone  String?        @map("customer_phone") @db.VarChar(30)
+  deliveryMethod DeliveryMethod @default(retiro) @map("delivery_method")
+  totalAmount    Decimal        @map("total_amount") @db.Decimal(12, 2)
+  status         OrderStatus    @default(pendiente)
+  whatsappSent   Boolean        @default(false) @map("whatsapp_sent")
+  createdAt      DateTime       @default(now()) @map("created_at")
 
   items OrderItem[]
 

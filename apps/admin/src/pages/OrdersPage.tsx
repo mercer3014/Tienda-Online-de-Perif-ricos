@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Download, Phone } from 'lucide-react';
-import { OrderStatus, ORDER_STATUS_LABEL, type OrderStatus as OrderStatusT, type OrderDTO } from '@villano/shared-types';
+import { Download, Phone, Store, Truck, User } from 'lucide-react';
+import { DELIVERY_METHOD_LABEL, OrderStatus, ORDER_STATUS_LABEL, type OrderStatus as OrderStatusT, type OrderDTO } from '@villano/shared-types';
 import { useOrders, useOrderStatusMutation } from '../hooks/admin';
 import { useAuth } from '../store/auth';
 import { apiDownload } from '../lib/api';
@@ -81,7 +81,12 @@ export default function OrdersPage() {
                       {o.orderNumber}
                     </button>
                     <span className="text-xs text-txt-faint">{formatDateTime(o.createdAt)}</span>
+                    {o.customerName && <span className="inline-flex items-center gap-1 text-xs text-txt-muted"><User className="h-3 w-3" /> {o.customerName}</span>}
                     {o.customerPhone && <span className="inline-flex items-center gap-1 text-xs text-txt-muted"><Phone className="h-3 w-3" /> {o.customerPhone}</span>}
+                    <span className="inline-flex items-center gap-1 text-xs text-txt-muted">
+                      {o.deliveryMethod === 'delivery' ? <Truck className="h-3 w-3" /> : <Store className="h-3 w-3" />}
+                      {DELIVERY_METHOD_LABEL[o.deliveryMethod]}
+                    </span>
                     <span className="ml-auto font-display font-bold text-neon-green">{formatBs(o.totalAmount)}</span>
                     {can('cambiar_estado_pedido') ? (
                       <select key={`${o.status}-${nonce}`} className={`input w-36 py-1 text-sm ${statusColor[o.status]}`} value={o.status} onChange={(e) => setStatus(o, e.target.value as OrderStatusT)}>

@@ -73,6 +73,7 @@ export const listProductsQuerySchema = z.object({
       return arr.map((s) => s.trim()).filter(Boolean);
     }),
   status: ProductStatus.optional(),
+  inStock: z.coerce.boolean().optional(),
   sort: z.enum(['recientes', 'precio_asc', 'precio_desc', 'nombre']).default('recientes'),
 });
 export type ListProductsQuery = z.infer<typeof listProductsQuerySchema>;
@@ -120,6 +121,11 @@ export interface ProductListItemDTO {
   primaryImage: string | null;
   fromPrice: number;
   aggregateStock: StockStatus;
+  /** Cantidad de variantes del producto (para saber si hace falta elegir una opcion). */
+  variantCount: number;
+  /** Variante a agregar directo desde la card cuando variantCount === 1 (o hay una obvia con stock). Null si no aplica. */
+  defaultVariantId: string | null;
+  defaultVariantStock: number;
 }
 
 export interface ProductDetailDTO extends ProductListItemDTO {

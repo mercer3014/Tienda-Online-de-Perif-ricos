@@ -26,7 +26,16 @@ function primaryImage(p: ProductWithRelations): string | null {
   return primary?.urlWebp ?? null;
 }
 
+/** Variante a agregar directo desde la card: la mas barata con stock, o la mas barata si todas estan agotadas. */
+function defaultVariant(variants: ProductWithRelations['variants']) {
+  if (!variants.length) return null;
+  const withStock = variants.filter((v) => v.stockQuantity > 0);
+  const pool = withStock.length ? withStock : variants;
+  return pool.reduce((best, v) => (toNumber(v.price) < toNumber(best.price) ? v : best), pool[0]);
+}
+
 export function toListItem(p: ProductWithRelations): ProductListItemDTO {
+  const dv = defaultVariant(p.variants);
   return {
     id: p.id,
     name: p.name,
@@ -40,6 +49,9 @@ export function toListItem(p: ProductWithRelations): ProductListItemDTO {
     primaryImage: primaryImage(p),
     fromPrice: fromPrice(p),
     aggregateStock: aggregateStock(p.variants),
+    variantCount: p.variants.length,
+    defaultVariantId: dv?.id ?? null,
+    defaultVariantStock: dv?.stockQuantity ?? 0,
   };
 }
 

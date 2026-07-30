@@ -102,7 +102,9 @@ export async function createOrder(input: CreateOrderInput): Promise<CreatedOrder
         order = await tx.order.create({
           data: {
             orderNumber: genOrderNumber(),
+            customerName: input.customerName ?? null,
             customerPhone: input.customerPhone ?? null,
+            deliveryMethod: input.deliveryMethod,
             totalAmount: total,
             status: 'pendiente',
             items: { create: itemsData },
@@ -125,7 +127,9 @@ export async function createOrder(input: CreateOrderInput): Promise<CreatedOrder
     orderNumber: order.orderNumber,
     items: itemsData.map((i) => ({ ...i, unitPrice: toNumber(i.unitPrice), subtotal: toNumber(i.subtotal) })),
     total: toNumber(total),
+    customerName: input.customerName,
     customerPhone: input.customerPhone,
+    deliveryMethod: input.deliveryMethod,
   });
   const whatsappUrl = buildWhatsappUrl(whatsappText);
 
@@ -242,7 +246,9 @@ function serializeOrder(order: OrderRow): OrderDTO {
   return {
     id: order.id,
     orderNumber: order.orderNumber,
+    customerName: order.customerName,
     customerPhone: order.customerPhone,
+    deliveryMethod: order.deliveryMethod,
     totalAmount: toNumber(order.totalAmount),
     status: order.status,
     whatsappSent: order.whatsappSent,

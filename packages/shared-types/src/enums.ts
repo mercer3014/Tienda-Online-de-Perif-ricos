@@ -12,6 +12,15 @@ export type StockStatus = z.infer<typeof StockStatus>;
 export const OrderStatus = z.enum(['pendiente', 'coordinado', 'completado', 'cancelado']);
 export type OrderStatus = z.infer<typeof OrderStatus>;
 
+/** Como quiere recibir el pedido el cliente. */
+export const DeliveryMethod = z.enum(['retiro', 'delivery']);
+export type DeliveryMethod = z.infer<typeof DeliveryMethod>;
+
+export const DELIVERY_METHOD_LABEL: Record<DeliveryMethod, string> = {
+  retiro: 'Retiro en tienda',
+  delivery: 'Delivery',
+};
+
 /** Tipos de evento para metricas de demanda y abandono de carrito. */
 export const ProductEventType = z.enum(['view', 'add_to_cart', 'whatsapp_click']);
 export type ProductEventType = z.infer<typeof ProductEventType>;

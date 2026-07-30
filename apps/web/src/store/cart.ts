@@ -17,7 +17,7 @@ export interface CartItem {
 interface CartState {
   items: CartItem[];
   isOpen: boolean;
-  addItem: (item: Omit<CartItem, 'quantity'>, quantity?: number) => void;
+  addItem: (item: Omit<CartItem, 'quantity'>, quantity?: number, opts?: { openDrawer?: boolean }) => void;
   removeItem: (variantId: string) => void;
   setQuantity: (variantId: string, quantity: number) => void;
   clear: () => void;
@@ -33,7 +33,8 @@ export const useCart = create<CartState>()(
     (set, get) => ({
       items: [],
       isOpen: false,
-      addItem: (item, quantity = 1) =>
+      addItem: (item, quantity = 1, opts) => {
+        const openDrawer = opts?.openDrawer ?? true;
         set((state) => {
           const existing = state.items.find((i) => i.variantId === item.variantId);
           if (existing) {
@@ -42,14 +43,15 @@ export const useCart = create<CartState>()(
               items: state.items.map((i) =>
                 i.variantId === item.variantId ? { ...i, ...item, quantity: next } : i,
               ),
-              isOpen: true,
+              isOpen: openDrawer ? true : state.isOpen,
             };
           }
           return {
             items: [...state.items, { ...item, quantity: Math.min(quantity, item.maxStock) }],
-            isOpen: true,
+            isOpen: openDrawer ? true : state.isOpen,
           };
-        }),
+        });
+      },
       removeItem: (variantId) =>
         set((state) => ({ items: state.items.filter((i) => i.variantId !== variantId) })),
       setQuantity: (variantId, quantity) =>

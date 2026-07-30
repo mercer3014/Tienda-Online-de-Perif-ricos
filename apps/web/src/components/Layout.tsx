@@ -4,6 +4,7 @@ import clsx from 'clsx';
 import { ShoppingBag, MapPin, Star, Menu, X } from 'lucide-react';
 import { useCart } from '../store/cart';
 import { useCategoryTree, useStoreStatus } from '../hooks/catalog';
+import { CartBar } from './CartBar';
 import { CartDrawer } from './CartDrawer';
 import { Spinner } from './ui';
 import { ThemeToggle } from './ThemeToggle';
@@ -145,7 +146,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         </div>
       )}
 
-      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6">{children}</main>
+      <main className={clsx('mx-auto w-full max-w-7xl flex-1 px-4 py-6', count > 0 && 'pb-24')}>{children}</main>
 
       <footer className="border-t border-base-border bg-base-void">
         <div className="mx-auto max-w-7xl px-4 py-6 text-center text-sm text-txt-faint">
@@ -156,6 +157,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
       </footer>
 
       <CartDrawer />
+      <CartBar />
     </div>
   );
 }
