@@ -1,43 +1,62 @@
-# Dependencies
+# Dependencias
 node_modules/
 .pnpm-store/
 
-# Environment (NUNCA commitear credenciales)
+# Variables de entorno y credenciales (NUNCA commitear)
 .env
 .env.local
 .env.*.local
+*.env
 apps/api/.env
 apps/web/.env
 apps/admin/.env
 
-# Build output
+# Salida de compilación / Build outputs
 dist/
 build/
+out/
+.next/
 *.tsbuildinfo
+tsconfig.tsbuildinfo
 
 # Prisma
 apps/api/prisma/*.db
+apps/api/prisma/*.db-journal
 
-# Uploads en runtime (imagenes subidas desde el admin) — NO versionar,
-# pero SI versionar las imagenes fuente del catalogo (assets del seed).
+# Uploads de imágenes en runtime (archivos subidos desde el panel admin)
+# Se ignoran los uploads en runtime salvo los assets fuente del seed (catalogo_imagenes)
 apps/api/uploads/*
 !apps/api/uploads/.gitkeep
 !apps/api/uploads/seed
 apps/api/uploads/seed/*
 !apps/api/uploads/seed/catalogo_imagenes
 
-# Logs
+# Logs y temporales
 *.log
 npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 pnpm-debug.log*
+*.tmp
+*.temp
+.eslintcache
 
-# Editor / OS
+# Archivos de SO y editores de código
 .DS_Store
 Thumbs.db
+ehthumbs.db
+Desktop.ini
 .vscode/*
 !.vscode/extensions.json
 .idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
 
-# Vite / cache
+# Herramientas de desarrollo, cache y testing
 .vite/
+.turbo/
 coverage/
+.nyc_output/
