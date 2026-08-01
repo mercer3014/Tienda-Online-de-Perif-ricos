@@ -104,7 +104,7 @@ export async function createOrder(input: CreateOrderInput): Promise<CreatedOrder
             orderNumber: genOrderNumber(),
             customerName: input.customerName ?? null,
             customerPhone: input.customerPhone ?? null,
-            deliveryMethod: input.deliveryMethod,
+            deliveryMethod: input.deliveryMethod ?? 'retiro',
             totalAmount: total,
             status: 'pendiente',
             items: { create: itemsData },
@@ -129,7 +129,7 @@ export async function createOrder(input: CreateOrderInput): Promise<CreatedOrder
     total: toNumber(total),
     customerName: input.customerName,
     customerPhone: input.customerPhone,
-    deliveryMethod: input.deliveryMethod,
+    deliveryMethod: input.deliveryMethod ?? 'retiro',
   });
   const whatsappUrl = buildWhatsappUrl(whatsappText);
 

@@ -120,7 +120,7 @@ function AttributeCard({ attribute }: { attribute: AttributeDTO }) {
       <div className="mb-3 flex flex-wrap gap-2">
         {attribute.values.length === 0 && <span className="text-sm text-txt-faint">Sin valores todavia.</span>}
         {attribute.values.map((v) => (
-          <span key={v.id} className="badge inline-flex items-center gap-1.5 border-base-border bg-base-void text-txt-primary">
+          <span key={v.id} className="badge border border-base-border bg-base-void text-txt-primary">
             {v.value}
             {can('crear_producto') && (
               <button

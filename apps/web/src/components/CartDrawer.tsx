@@ -1,11 +1,9 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ShoppingBag, X, Minus, Plus, MessageSquare, Store, Trash2, Truck } from 'lucide-react';
-import { DELIVERY_METHOD_LABEL, type DeliveryMethod } from '@villano/shared-types';
+import { ShoppingCart, X, Minus, Plus, MessageSquare, Trash2 } from 'lucide-react';
 import { useCart } from '../store/cart';
 import { useCreateOrder, markWhatsappSent, trackEvent } from '../hooks/catalog';
 import { formatBs } from '../lib/format';
-import { buildOrderPreviewText } from '../lib/whatsapp';
 import { ProductImg, Spinner } from './ui';
 import { useDismissable } from '../lib/useDismissable';
 
@@ -13,31 +11,14 @@ export function CartDrawer() {
   const { items, isOpen, close, removeItem, setQuantity, clear, total } = useCart();
   // Escape cierra el carrito y se bloquea el scroll del fondo mientras esta abierto.
   useDismissable(isOpen, close);
-  const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
-  const [delivery, setDelivery] = useState<DeliveryMethod>('retiro');
   const [error, setError] = useState<string | null>(null);
   const createOrder = useCreateOrder();
-
-  const preview = useMemo(
-    () =>
-      buildOrderPreviewText({
-        items,
-        total: total(),
-        customerName: name.trim(),
-        customerPhone: phone.trim(),
-        deliveryMethod: delivery,
-      }),
-    [items, total, name, phone, delivery],
-  );
 
   const finalize = async () => {
     setError(null);
     try {
       const payload = {
-        customerName: name.trim() || undefined,
-        customerPhone: phone.trim() || undefined,
-        deliveryMethod: delivery,
+        deliveryMethod: 'retiro' as const,
         items: items.map((i) => ({ variantId: i.variantId, quantity: i.quantity })),
       };
       const res = await createOrder.mutateAsync(payload);
@@ -68,7 +49,7 @@ export function CartDrawer() {
       >
         <div className="flex items-center justify-between border-b border-base-border p-4">
           <h2 className="inline-flex items-center gap-2 font-display text-lg uppercase tracking-wider text-neon-purple-bright">
-            <ShoppingBag className="h-5 w-5 text-neon-purple" /> Tu carrito
+            <ShoppingCart className="h-5 w-5 text-neon-purple" /> Tu carrito
           </h2>
           <button onClick={close} className="rounded p-1 text-txt-muted hover:text-neon-purple" aria-label="Cerrar carrito">
             <X className="h-5 w-5" />
@@ -77,7 +58,7 @@ export function CartDrawer() {
 
         {items.length === 0 ? (
           <div className="flex flex-1 flex-col items-center justify-center gap-3 p-8 text-center">
-            <ShoppingBag className="h-16 w-16 text-txt-faint opacity-40" />
+            <ShoppingCart className="h-16 w-16 text-txt-faint opacity-40" />
             <p className="text-txt-muted">Tu carrito está vacío.</p>
             <Link to="/catalogo" onClick={close} className="btn-primary">
               Ver catalogo
@@ -115,62 +96,10 @@ export function CartDrawer() {
             </div>
 
             <div className="max-h-[70vh] overflow-y-auto border-t border-base-border p-4">
-              <label className="mb-1 block text-xs text-txt-muted" htmlFor="name">
-                Tu nombre (opcional)
-              </label>
-              <input
-                id="name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Ej. Ana Pérez"
-                className="mb-3 w-full rounded-md border border-base-border bg-base-void px-3 py-2 text-sm"
-              />
-
-              <label className="mb-1 block text-xs text-txt-muted" htmlFor="phone">
-                Tu teléfono (opcional)
-              </label>
-              <input
-                id="phone"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="Ej. 700 12345"
-                className="mb-3 w-full rounded-md border border-base-border bg-base-void px-3 py-2 text-sm"
-                inputMode="tel"
-              />
-
-              <span className="mb-1 block text-xs text-txt-muted">Entrega</span>
-              <div className="mb-3 grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setDelivery('retiro')}
-                  aria-pressed={delivery === 'retiro'}
-                  className={`inline-flex items-center justify-center gap-1.5 rounded-md border py-2 text-sm transition-colors ${delivery === 'retiro' ? 'border-neon-green bg-neon-green/15 text-neon-green' : 'border-base-border text-txt-muted hover:border-neon-purple/60'}`}
-                >
-                  <Store className="h-4 w-4" /> {DELIVERY_METHOD_LABEL.retiro}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setDelivery('delivery')}
-                  aria-pressed={delivery === 'delivery'}
-                  className={`inline-flex items-center justify-center gap-1.5 rounded-md border py-2 text-sm transition-colors ${delivery === 'delivery' ? 'border-neon-green bg-neon-green/15 text-neon-green' : 'border-base-border text-txt-muted hover:border-neon-purple/60'}`}
-                >
-                  <Truck className="h-4 w-4" /> {DELIVERY_METHOD_LABEL.delivery}
-                </button>
-              </div>
-
               <div className="mb-3 flex items-center justify-between">
                 <span className="text-txt-muted">Total</span>
                 <span className="font-display text-xl font-bold text-neon-green">{formatBs(total())}</span>
               </div>
-
-              <details className="mb-3 rounded-md border border-base-border" open>
-                <summary className="cursor-pointer select-none px-3 py-2 text-xs font-semibold uppercase tracking-wide text-txt-muted">
-                  Vista previa del mensaje
-                </summary>
-                <pre className="max-h-40 overflow-y-auto whitespace-pre-wrap break-words border-t border-base-border bg-base-void px-3 py-2 font-mono text-xs text-txt-muted">
-                  {preview}
-                </pre>
-              </details>
 
               {error && (
                 <p className="mb-2 rounded bg-status-out/10 px-3 py-2 text-sm text-status-out" role="alert">

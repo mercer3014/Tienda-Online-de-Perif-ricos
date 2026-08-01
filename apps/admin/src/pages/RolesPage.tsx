@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useRoles, useRolePermissionsMutation, type RoleMatrix } from '../hooks/admin';
+import { useAuth } from '../store/auth';
 import { toast } from '../lib/toast';
 import { confirmAction } from '../lib/confirm';
 import { ErrorState, PageLoader, Spinner } from '../components/shared';
 
 export default function RolesPage() {
+  const currentUser = useAuth((s) => s.user);
   const { data: roles, isLoading, isError, refetch } = useRoles();
   const save = useRolePermissionsMutation();
   // Estado local editable: roleId -> permissionId -> allowed
@@ -75,17 +77,24 @@ export default function RolesPage() {
                   <div className="text-sm font-medium text-txt-primary">{perm.description}</div>
                   <div className="font-mono text-[10px] text-txt-faint">{perm.key}</div>
                 </td>
-                {roles.map((r) => (
-                  <td key={r.id} className="p-2 text-center">
-                    <input
-                      type="checkbox"
-                      className="h-4 w-4 accent-neon-green"
-                      checked={draft[r.id]?.[perm.permissionId] ?? false}
-                      onChange={() => toggle(r.id, perm.permissionId)}
-                      aria-label={`${perm.key} para ${r.name}`}
-                    />
-                  </td>
-                ))}
+                {roles.map((r) => {
+                  // Candado espejo del backend: no podes quitarte 'gestionar_roles'
+                  // al rol con el que iniciaste sesion (te dejaria sin salida).
+                  const locked = perm.key === 'gestionar_roles' && r.id === currentUser?.role.id;
+                  return (
+                    <td key={r.id} className="p-2 text-center">
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4 accent-neon-green disabled:cursor-not-allowed disabled:opacity-50"
+                        checked={draft[r.id]?.[perm.permissionId] ?? false}
+                        onChange={() => toggle(r.id, perm.permissionId)}
+                        disabled={locked}
+                        title={locked ? 'No podés quitarle este permiso al rol con el que iniciaste sesión.' : undefined}
+                        aria-label={`${perm.key} para ${r.name}`}
+                      />
+                    </td>
+                  );
+                })}
               </tr>
             ))}
             <tr className="border-t border-base-border">

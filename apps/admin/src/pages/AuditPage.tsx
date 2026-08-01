@@ -141,47 +141,58 @@ export default function AuditPage() {
         : data && data.items.length === 0 ? <EmptyState title="Sin registros" hint="No hay cambios para esos filtros." />
         : (
           <>
-            <div className="space-y-3">
-              {data?.items.map((a) => {
-                const changes = toChanges(a.oldValue, a.newValue);
-                return (
-                  <div key={a.id} className="card p-4">
-                    <div className="flex flex-wrap items-baseline justify-between gap-2">
-                      <div className="min-w-0">
-                        <span className="font-semibold text-txt-primary">{ACTION_LABEL[a.action] ?? a.action}</span>
-                        <span className="badge badge-success ml-2 align-middle">{ENTITY_LABEL[a.entityType] ?? a.entityType}</span>
-                      </div>
-                      <span className="text-xs text-txt-faint">{formatDateTime(a.createdAt)}</span>
-                    </div>
-                    <p className="mt-0.5 text-xs text-txt-muted">
-                      {a.user ? `${a.user.name} · ${a.user.email}` : 'Sistema / usuario eliminado'}
-                    </p>
-
-                    {changes.length > 0 && (
-                      <ul className="mt-3 divide-y divide-base-border/60 rounded-md border border-base-border/60">
-                        {changes.map((c, i) => (
-                          <li key={i} className="grid grid-cols-[minmax(90px,140px)_1fr] items-center gap-2 px-3 py-1.5 text-sm">
-                            <span className="text-xs font-medium uppercase tracking-wide text-txt-faint">{c.field}</span>
-                            <span className="flex flex-wrap items-center gap-2">
-                              {c.before !== undefined && (
-                                <span className="rounded bg-status-out/10 px-2 py-0.5 text-status-out line-through decoration-status-out/40">
-                                  {c.before}
-                                </span>
-                              )}
-                              {c.before !== undefined && c.after !== undefined && (
-                                <ArrowRight className="h-3.5 w-3.5 shrink-0 text-txt-faint" />
-                              )}
-                              {c.after !== undefined && (
-                                <span className="rounded bg-status-stock/10 px-2 py-0.5 text-status-stock">{c.after}</span>
-                              )}
-                            </span>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </div>
-                );
-              })}
+            <div className="card overflow-x-auto p-0">
+              <table className="w-full min-w-[820px] text-sm">
+                <thead>
+                  <tr className="border-b border-base-border text-left text-xs font-semibold uppercase tracking-wide text-txt-muted">
+                    <th className="p-3">Fecha</th>
+                    <th className="p-3">Usuario</th>
+                    <th className="p-3">Acción</th>
+                    <th className="p-3">Entidad</th>
+                    <th className="p-3">Cambios</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data?.items.map((a) => {
+                    const changes = toChanges(a.oldValue, a.newValue);
+                    return (
+                      <tr key={a.id} className="border-b border-base-border/40 align-top odd:bg-base-void/40 hover:bg-base-border/20">
+                        <td className="whitespace-nowrap p-3 text-xs text-txt-faint">{formatDateTime(a.createdAt)}</td>
+                        <td className="p-3 text-txt-muted">
+                          {a.user ? (
+                            <>
+                              <span className="text-txt-primary">{a.user.name}</span>
+                              <span className="block text-xs text-txt-faint">{a.user.email}</span>
+                            </>
+                          ) : (
+                            'Sistema / usuario eliminado'
+                          )}
+                        </td>
+                        <td className="p-3 text-txt-primary">{ACTION_LABEL[a.action] ?? a.action}</td>
+                        <td className="p-3 text-txt-muted">{ENTITY_LABEL[a.entityType] ?? a.entityType}</td>
+                        <td className="p-3">
+                          {changes.length === 0 ? (
+                            <span className="text-txt-faint">—</span>
+                          ) : (
+                            <ul className="space-y-1">
+                              {changes.map((c, i) => (
+                                <li key={i} className="flex flex-wrap items-center gap-1.5">
+                                  <span className="text-xs font-medium text-txt-faint">{c.field}:</span>
+                                  {c.before !== undefined && <span className="text-txt-muted line-through">{c.before}</span>}
+                                  {c.before !== undefined && c.after !== undefined && (
+                                    <ArrowRight className="h-3 w-3 shrink-0 text-txt-faint" />
+                                  )}
+                                  {c.after !== undefined && <span className="text-txt-primary">{c.after}</span>}
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
 
             {data && (

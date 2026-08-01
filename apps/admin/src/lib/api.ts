@@ -54,7 +54,7 @@ export async function apiFetch<T>(path: string, options: RequestOptions = {}): P
     throw new ApiRequestError(0, 'NETWORK_ERROR', 'No se pudo conectar con el servidor.');
   }
 
-  if (res.status === 401) {
+  if (res.status === 401 && path !== '/auth/login') {
     handleUnauthorized();
     throw new ApiRequestError(401, 'UNAUTHORIZED', 'Sesión expirada. Iniciá sesión nuevamente.');
   }

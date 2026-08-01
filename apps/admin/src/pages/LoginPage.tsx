@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LogIn } from 'lucide-react';
+import { LogIn, Eye, EyeOff } from 'lucide-react';
 import { loginSchema } from '@villano/shared-types';
 import { useAuth } from '../store/auth';
 import { Spinner } from '../components/ui';
@@ -11,6 +11,7 @@ export default function LoginPage() {
   const login = useAuth((s) => s.login);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -56,10 +57,26 @@ export default function LoginPage() {
             <label htmlFor="password" className="mb-1 block text-xs font-semibold uppercase tracking-wide text-txt-muted">
               Contraseña
             </label>
-            <input
-              id="password" type="password" autoComplete="current-password" value={password}
-              onChange={(e) => setPassword(e.target.value)} className="input" placeholder="••••••••"
-            />
+            <div className="relative">
+              <input
+                id="password"
+                type={showPassword ? 'text' : 'password'}
+                autoComplete="current-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="input pr-10"
+                placeholder="••••••••"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((prev) => !prev)}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-txt-muted hover:text-neon-purple-bright transition-colors p-1"
+                aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                title={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+              >
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
           </div>
           {error && (
             <p className="rounded bg-status-out/10 px-3 py-2 text-sm text-status-out" role="alert">

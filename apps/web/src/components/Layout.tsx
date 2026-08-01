@@ -1,36 +1,19 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import clsx from 'clsx';
-import { ShoppingBag, MapPin, Star, Menu, X } from 'lucide-react';
+import { ShoppingCart, MapPin, Star, Menu, X } from 'lucide-react';
 import { useCart } from '../store/cart';
-import { useCategoryTree, useStoreStatus } from '../hooks/catalog';
+import { useCategoryTree } from '../hooks/catalog';
 import { CartBar } from './CartBar';
 import { CartDrawer } from './CartDrawer';
 import { Spinner } from './ui';
 import { ThemeToggle } from './ThemeToggle';
 import { SearchAutocomplete } from './SearchAutocomplete';
-
-function StoreStatusPill() {
-  const { data, isLoading } = useStoreStatus();
-  if (isLoading) return <span className="text-xs text-txt-faint">…</span>;
-  if (!data) return null;
-  return (
-    <span
-      className={clsx(
-        'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold',
-        data.isOpen
-          ? 'border-status-stock/50 bg-status-stock/10 text-status-stock'
-          : 'border-status-out/50 bg-status-out/10 text-status-out',
-      )}
-    >
-      <span className={clsx('h-2 w-2 rounded-full bg-current', data.isOpen && 'animate-pulse-neon')} />
-      {data.isOpen ? 'Abierta ahora' : 'Cerrada'}
-    </span>
-  );
-}
+import { useDismissable } from '../lib/useDismissable';
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  useDismissable(menuOpen, () => setMenuOpen(false));
   const count = useCart((s) => s.count());
   const openCart = useCart((s) => s.open);
   const { data: categories, isLoading: catLoading } = useCategoryTree();
@@ -43,7 +26,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const navClass = (active: boolean) =>
     clsx(
       'rounded px-3 py-1.5 font-display uppercase tracking-wide transition-colors',
-      active ? 'bg-neon-purple/15 text-neon-green' : 'text-txt-muted hover:text-neon-purple-bright',
+      active ? 'bg-neon-purple/15 text-neon-purple-bright' : 'text-txt-muted hover:text-neon-purple-bright',
     );
 
   return (
@@ -68,16 +51,13 @@ export function Layout({ children }: { children: React.ReactNode }) {
           </div>
 
           <div className="ml-auto flex items-center gap-3 sm:ml-2">
-            <div className="hidden md:block">
-              <StoreStatusPill />
-            </div>
             <ThemeToggle />
             <button
               onClick={openCart}
               className="relative inline-flex items-center gap-1.5 rounded-md border border-neon-purple/50 px-3 py-2 text-neon-purple-bright hover:bg-neon-purple/15 hover:shadow-neon-purple transition-all"
               aria-label={`Carrito, ${count} artículos`}
             >
-              <ShoppingBag className="h-4 w-4" />
+              <ShoppingCart className="h-4 w-4" />
               {count > 0 && (
                 <span className="absolute -right-2 -top-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-neon-green px-1 text-xs font-bold text-base-black">
                   {count}
@@ -126,24 +106,30 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
       {/* Menu mobile desplegable */}
       {menuOpen && (
-        <div className="border-b border-base-border bg-base-graphite lg:hidden">
-          <div className="flex flex-col gap-1 p-4">
-            <div className="mb-1"><StoreStatusPill /></div>
-            <MobileLink to="/catalogo" active={isCatalogAll} onClick={() => setMenuOpen(false)}>Todo el catalogo</MobileLink>
-            {categories?.map((c) => (
-              <MobileLink key={c.id} to={`/catalogo?categoria=${c.slug}`} active={activeCategoria === c.slug} onClick={() => setMenuOpen(false)}>
-                <span className="inline-flex items-center gap-1">
-                  {c.name} {c.isPromo && <Star className="h-3.5 w-3.5 text-neon-green fill-neon-green" />}
+        <>
+          <div
+            className="fixed inset-0 z-30 bg-black/50 lg:hidden"
+            onClick={() => setMenuOpen(false)}
+            aria-hidden
+          />
+          <div className="relative z-30 border-b border-base-border bg-base-graphite lg:hidden">
+            <div className="flex flex-col gap-1 p-4">
+              <MobileLink to="/catalogo" active={isCatalogAll} onClick={() => setMenuOpen(false)}>Todo el catalogo</MobileLink>
+              {categories?.map((c) => (
+                <MobileLink key={c.id} to={`/catalogo?categoria=${c.slug}`} active={activeCategoria === c.slug} onClick={() => setMenuOpen(false)}>
+                  <span className="inline-flex items-center gap-1">
+                    {c.name} {c.isPromo && <Star className="h-3.5 w-3.5 text-neon-green fill-neon-green" />}
+                  </span>
+                </MobileLink>
+              ))}
+              <MobileLink to="/ubicacion" active={location.pathname === '/ubicacion'} onClick={() => setMenuOpen(false)}>
+                <span className="inline-flex items-center gap-1.5">
+                  <MapPin className="h-4 w-4 text-neon-purple-bright" /> Ubicación y horarios
                 </span>
               </MobileLink>
-            ))}
-            <MobileLink to="/ubicacion" active={location.pathname === '/ubicacion'} onClick={() => setMenuOpen(false)}>
-              <span className="inline-flex items-center gap-1.5">
-                <MapPin className="h-4 w-4 text-neon-purple-bright" /> Ubicación y horarios
-              </span>
-            </MobileLink>
+            </div>
           </div>
-        </div>
+        </>
       )}
 
       <main className={clsx('mx-auto w-full max-w-7xl flex-1 px-4 py-6', count > 0 && 'pb-24')}>{children}</main>
@@ -170,15 +156,13 @@ function MobileLink({ to, active, children, onClick }: { to: string; active: boo
       aria-current={active ? 'page' : undefined}
       className={clsx(
         'rounded-md px-3 py-2.5 font-display uppercase tracking-wide',
-        active ? 'bg-neon-purple/15 text-neon-green' : 'text-txt-primary hover:bg-base-panel',
+        active ? 'bg-neon-purple/15 text-neon-purple-bright' : 'text-txt-primary hover:bg-base-panel',
       )}
     >
       {children}
     </Link>
   );
 }
-
-export { StoreStatusPill };
 
 // Efecto de titulo dinamico por pagina.
 export function usePageMeta(title: string, description?: string) {

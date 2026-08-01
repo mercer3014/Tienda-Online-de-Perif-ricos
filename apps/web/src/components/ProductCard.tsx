@@ -1,17 +1,15 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { Bell, Check, ListPlus, Plus } from 'lucide-react';
+import { Ban, Check, ListPlus, Plus } from 'lucide-react';
 import type { ProductListItemDTO } from '@villano/shared-types';
 import { useCart } from '../store/cart';
-import { trackEvent, useStoreStatus } from '../hooks/catalog';
-import { buildNotifyWhatsappUrl } from '../lib/whatsapp';
+import { trackEvent } from '../hooks/catalog';
 import { formatBs } from '../lib/format';
-import { ProductImg, StockBadge } from './ui';
+import { ProductImg } from './ui';
 
 export function ProductCard({ product }: { product: ProductListItemDTO }) {
   const navigate = useNavigate();
   const items = useCart((s) => s.items);
   const addItem = useCart((s) => s.addItem);
-  const { data: storeStatus } = useStoreStatus();
 
   const onSale = product.originalPrice != null && product.originalPrice > product.fromPrice;
   const discount = onSale
@@ -47,25 +45,15 @@ export function ProductCard({ product }: { product: ProductListItemDTO }) {
     trackEvent(product.id, 'add_to_cart');
   };
 
-  const handleNotify = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (!storeStatus) return;
-    window.open(buildNotifyWhatsappUrl(storeStatus.whatsappNumber, product.name), '_blank', 'noopener');
-  };
-
   return (
     <div className="card group flex flex-col overflow-hidden transition-transform hover:-translate-y-1 hover:shadow-neon-purple">
       <Link to={`/producto/${product.slug}`} className="flex flex-1 flex-col">
-        <div className="relative aspect-square overflow-hidden bg-base-void">
+        <div className="relative aspect-square overflow-hidden bg-shot p-3">
           <ProductImg
             url={product.primaryImage}
             alt={product.name}
-            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+            className="h-full w-full object-contain transition-transform duration-300 group-hover:scale-105"
           />
-          <div className="absolute left-2 top-2">
-            <StockBadge status={product.aggregateStock} />
-          </div>
         </div>
         <div className="flex flex-1 flex-col p-3 pb-0">
           {product.brand && (
@@ -75,7 +63,7 @@ export function ProductCard({ product }: { product: ProductListItemDTO }) {
             {product.name}
           </h3>
           <div className="mt-2 flex flex-wrap items-baseline gap-x-2">
-            <span className="font-display text-lg font-bold text-neon-green">
+            <span className="font-display text-lg font-bold text-txt-primary">
               {formatBs(product.fromPrice)}
             </span>
             {onSale && (
@@ -84,7 +72,7 @@ export function ProductCard({ product }: { product: ProductListItemDTO }) {
               </span>
             )}
             {onSale && (
-              <span className="rounded-full bg-accent2 px-1.5 py-0.5 text-[11px] font-bold text-accent2-on">
+              <span className="rounded-full border border-status-low/50 bg-status-low/10 px-1.5 py-0.5 text-[11px] font-bold text-status-low">
                 -{discount}%
               </span>
             )}
@@ -94,12 +82,9 @@ export function ProductCard({ product }: { product: ProductListItemDTO }) {
 
       <div className="p-3 pt-2">
         {outOfStock ? (
-          <button
-            onClick={handleNotify}
-            className="inline-flex w-full items-center justify-center gap-1.5 rounded-md border border-base-border py-1.5 text-xs font-display font-semibold uppercase tracking-wide text-txt-muted transition-colors hover:border-neon-purple/60 hover:text-txt-primary"
-          >
-            <Bell className="h-3.5 w-3.5" /> Avisarme cuando llegue
-          </button>
+          <span className="inline-flex w-full items-center justify-center gap-1.5 rounded-md border border-base-border bg-base-border/15 py-1.5 text-xs font-display font-semibold uppercase tracking-wide text-txt-muted">
+            <Ban className="h-3.5 w-3.5" /> Agotado
+          </span>
         ) : needsOptions ? (
           <button
             onClick={handleAdd}

@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { computeStockStatus, type VariantDTO } from '@villano/shared-types';
-import { ShoppingBag, Check } from 'lucide-react';
-import { useProduct, trackEvent } from '../hooks/catalog';
+import type { VariantDTO } from '@villano/shared-types';
+import { ShoppingCart, Check } from 'lucide-react';
+import { useProduct, useProducts, trackEvent } from '../hooks/catalog';
 import { useCart } from '../store/cart';
 import { assetUrl } from '../lib/api';
 import { formatBs } from '../lib/format';
-import { ErrorState, ProductImg, Spinner, StockBadge } from '../components/ui';
+import { ErrorState, ProductImg, Spinner } from '../components/ui';
+import { ProductCard } from '../components/ProductCard';
 import { usePageMeta } from '../components/Layout';
 
 // Productos ya vistos en esta sesion del SPA (dedupe de la metrica 'view').
@@ -52,6 +53,14 @@ export default function ProductPage() {
     [product, activeVariantId],
   );
 
+  // Productos relacionados: otros items de la misma categoria (excluye el actual).
+  const relatedQuery = product ? `categorySlug=${product.categorySlug}&pageSize=5` : '';
+  const { data: relatedData } = useProducts(relatedQuery);
+  const related = useMemo(
+    () => (relatedData?.items ?? []).filter((p) => p.id !== product?.id).slice(0, 4),
+    [relatedData, product?.id],
+  );
+
   // OpenGraph dinamico para compartir por WhatsApp.
   useEffect(() => {
     if (!product) return;
@@ -67,8 +76,14 @@ export default function ProductPage() {
   if (isLoading) return <ProductSkeleton />;
   if (isError || !product) return <ErrorState message="No se pudo cargar el producto." onRetry={() => refetch()} />;
 
-  const stockStatus = activeVariant ? computeStockStatus(activeVariant.stockQuantity) : product.aggregateStock;
   const canAdd = !!activeVariant && activeVariant.stockQuantity > 0;
+
+  // Ficha tecnica: marca + categoria + atributos de la variante seleccionada.
+  const specs: { label: string; value: string }[] = [
+    ...(product.brand ? [{ label: 'Marca', value: product.brand }] : []),
+    { label: 'Categoría', value: product.categoryName },
+    ...(activeVariant?.attributes ?? []).map((a) => ({ label: a.attribute, value: a.value })),
+  ];
 
   const handleAdd = () => {
     if (!activeVariant) return;
@@ -100,11 +115,11 @@ export default function ProductPage() {
       <div className="grid gap-8 lg:grid-cols-2">
         {/* Galeria */}
         <div>
-          <div className="card aspect-square overflow-hidden">
+          <div className="card aspect-square overflow-hidden bg-shot p-6">
             <ProductImg
               url={product.images[activeImage]?.urlWebp ?? product.primaryImage}
               alt={product.name}
-              className="h-full w-full object-cover"
+              className="h-full w-full object-contain"
             />
           </div>
           {product.images.length > 1 && (
@@ -113,10 +128,10 @@ export default function ProductPage() {
                 <button
                   key={img.id}
                   onClick={() => setActiveImage(i)}
-                  className={`h-16 w-16 shrink-0 overflow-hidden rounded border ${i === activeImage ? 'border-neon-purple shadow-neon-purple' : 'border-base-border'}`}
+                  className={`h-16 w-16 shrink-0 overflow-hidden rounded border bg-shot p-1 ${i === activeImage ? 'border-neon-purple shadow-neon-purple' : 'border-base-border'}`}
                   aria-label={`Imagen ${i + 1}`}
                 >
-                  <ProductImg url={img.urlWebp} alt={`${product.name} ${i + 1}`} className="h-full w-full object-cover" />
+                  <ProductImg url={img.urlWebp} alt={`${product.name} ${i + 1}`} className="h-full w-full object-contain" />
                 </button>
               ))}
             </div>
@@ -128,7 +143,7 @@ export default function ProductPage() {
           {product.brand && <span className="text-sm uppercase tracking-wide text-txt-faint">{product.brand}</span>}
           <h1 className="font-display text-2xl font-bold text-txt-primary sm:text-3xl">{product.name}</h1>
           <div className="mt-3 flex flex-wrap items-center gap-3">
-            <span className="font-display text-3xl font-bold text-neon-green">
+            <span className="font-display text-3xl font-bold text-txt-primary">
               {formatBs(activeVariant?.price ?? product.fromPrice)}
             </span>
             {product.originalPrice != null && product.originalPrice > product.fromPrice && (
@@ -136,12 +151,11 @@ export default function ProductPage() {
                 <span className="text-lg text-txt-faint line-through">
                   {formatBs(product.originalPrice)}
                 </span>
-                <span className="rounded-full bg-accent2 px-2 py-0.5 text-xs font-bold text-accent2-on">
+                <span className="rounded-full border border-status-low/50 bg-status-low/10 px-2 py-0.5 text-xs font-bold text-status-low">
                   -{Math.round((1 - product.fromPrice / product.originalPrice) * 100)}%
                 </span>
               </>
             )}
-            <StockBadge status={stockStatus} />
           </div>
 
           {product.description && <p className="mt-4 text-txt-muted">{product.description}</p>}
@@ -178,7 +192,7 @@ export default function ProductPage() {
             disabled={!canAdd}
             className="btn-accent mt-6 w-full py-3 text-base sm:w-auto sm:px-10 inline-flex items-center justify-center gap-2"
           >
-            {added ? <><Check className="h-5 w-5" /> Agregado</> : canAdd ? <><ShoppingBag className="h-5 w-5" /> Agregar al carrito</> : 'Agotado'}
+            {added ? <><Check className="h-5 w-5" /> Agregado</> : canAdd ? <><ShoppingCart className="h-5 w-5" /> Agregar al carrito</> : 'Agotado'}
           </button>
           {activeVariant && activeVariant.stockQuantity > 0 && activeVariant.stockQuantity < 5 && (
             <p className="mt-2 text-sm text-status-low">
@@ -187,6 +201,40 @@ export default function ProductPage() {
           )}
         </div>
       </div>
+
+      {/* Ficha tecnica */}
+      {specs.length > 0 && (
+        <section className="mt-10">
+          <h2 className="mb-3 font-display text-lg uppercase tracking-wide text-neon-purple-bright">
+            Especificaciones
+          </h2>
+          <dl className="card divide-y divide-base-border p-6">
+            {specs.map((s, i) => (
+              <div
+                key={`${s.label}-${i}`}
+                className="flex items-baseline justify-between gap-4 py-2.5 first:pt-0 last:pb-0"
+              >
+                <dt className="text-sm uppercase tracking-wide text-txt-faint">{s.label}</dt>
+                <dd className="text-right text-sm font-medium text-txt-primary">{s.value}</dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+      )}
+
+      {/* Productos relacionados */}
+      {related.length > 0 && (
+        <section className="mt-10">
+          <h2 className="mb-3 font-display text-lg uppercase tracking-wide text-neon-purple-bright">
+            Productos relacionados
+          </h2>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {related.map((p) => (
+              <ProductCard key={p.id} product={p} />
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 }

@@ -37,6 +37,10 @@
   --shadow-neon-green: 0 0 14px rgba(57, 255, 20, 0.3), 0 0 2px rgba(57, 255, 20, 0.6);
   --shadow-panel: 0 8px 30px rgba(0, 0, 0, 0.55);
 
+  /* Matte fija (no cambia con el tema) para miniaturas de producto: evita el
+     tablero blanco/negro cuando las fotos traen fondos distintos entre si. */
+  --color-shot-mat: 244 246 251;
+
   --bg-radial: radial-gradient(circle at 15% -10%, rgba(168, 85, 247, 0.1), transparent 45%),
     radial-gradient(circle at 100% 0%, rgba(57, 255, 20, 0.06), transparent 40%);
 }
@@ -153,21 +157,18 @@ body.light,
   }
 
   .badge {
-    @apply inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-semibold;
+    @apply inline-flex items-center gap-1.5 rounded px-2 py-0.5 text-xs font-medium;
   }
   .badge-success {
     color: rgb(var(--color-status-stock));
-    border-color: rgb(var(--color-status-stock) / 0.5);
     background-color: rgb(var(--color-status-stock) / 0.12);
   }
   .badge-warning {
     color: rgb(var(--color-status-low));
-    border-color: rgb(var(--color-status-low) / 0.5);
     background-color: rgb(var(--color-status-low) / 0.12);
   }
   .badge-danger {
     color: rgb(var(--color-status-out));
-    border-color: rgb(var(--color-status-out) / 0.5);
     background-color: rgb(var(--color-status-out) / 0.12);
   }
 }

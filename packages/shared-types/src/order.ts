@@ -24,7 +24,7 @@ export const createOrderSchema = z.object({
   deliveryMethod: DeliveryMethod.default('retiro'),
   items: z.array(orderItemInputSchema).min(1, 'El carrito esta vacio'),
 });
-export type CreateOrderInput = z.infer<typeof createOrderSchema>;
+export type CreateOrderInput = z.input<typeof createOrderSchema>;
 
 export const updateOrderStatusSchema = z.object({
   status: OrderStatus,

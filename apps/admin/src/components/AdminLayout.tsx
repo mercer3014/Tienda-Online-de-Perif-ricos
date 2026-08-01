@@ -67,6 +67,27 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
     }
   };
 
+  /** Nombre/rol + cerrar sesion: vive en la barra superior derecha, no en el sidebar. */
+  const AccountArea = ({ compact }: { compact?: boolean }) => (
+    <div className="flex items-center gap-3">
+      {!compact && (
+        <div className="text-right text-xs leading-tight">
+          <p className="truncate font-semibold text-txt-primary">{user?.name}</p>
+          <p className="truncate text-txt-faint">{user?.role.name}</p>
+        </div>
+      )}
+      <button
+        onClick={handleLogout}
+        title="Cerrar sesión"
+        aria-label="Cerrar sesión"
+        className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium text-status-out transition-all duration-200 hover:-translate-y-0.5 hover:bg-status-out/10 hover:shadow-panel"
+      >
+        <LogOut className="h-4 w-4 shrink-0" />
+        <span className="hidden sm:inline">Cerrar sesión</span>
+      </button>
+    </div>
+  );
+
   /** `mini` = colapsado (solo iconos). Solo aplica en desktop. */
   const SidebarContent = ({ mini }: { mini: boolean }) => (
     <div className="flex h-full flex-col">
@@ -104,7 +125,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
                   'flex items-center rounded-md py-2.5 text-sm font-medium transition-colors',
                   mini ? 'justify-center px-2' : 'gap-3 px-3',
                   isActive
-                    ? 'bg-neon-purple/15 text-neon-green'
+                    ? 'bg-neon-purple/15 text-neon-purple-bright'
                     : 'text-txt-muted hover:bg-base-panel hover:text-txt-primary',
                 )
               }
@@ -116,36 +137,9 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
         })}
       </nav>
 
-      {/* Footer anclado abajo del sidebar */}
+      {/* Footer anclado abajo del sidebar: solo el toggle de tema (cuenta y logout viven arriba a la derecha) */}
       <div className="mt-2 border-t border-base-border p-2">
-        <div className={clsx('mb-2', mini && '[&_span]:hidden')}>
-          <ThemeToggle className={mini ? 'w-full justify-center' : 'w-full justify-start'} />
-        </div>
-        {mini ? (
-          <div
-            className="mx-auto mb-1 flex h-8 w-8 items-center justify-center rounded-full bg-neon-purple/15 text-xs font-bold text-neon-purple-bright"
-            title={`${user?.name} · ${user?.role.name}`}
-          >
-            {user?.name?.slice(0, 2).toUpperCase()}
-          </div>
-        ) : (
-          <div className="px-2 py-1 text-xs">
-            <p className="truncate font-semibold text-txt-primary">{user?.name}</p>
-            <p className="truncate text-txt-faint">{user?.role.name}</p>
-          </div>
-        )}
-        <button
-          onClick={handleLogout}
-          title="Cerrar sesión"
-          aria-label="Cerrar sesión"
-          className={clsx(
-            'flex w-full items-center rounded-md py-2 text-sm text-status-out transition-colors hover:bg-status-out/10',
-            mini ? 'justify-center px-2' : 'gap-2 px-3',
-          )}
-        >
-          <LogOut className="h-4 w-4 shrink-0" />
-          {!mini && 'Cerrar sesión'}
-        </button>
+        <ThemeToggle className={mini ? 'w-full justify-center' : 'w-full justify-start'} />
       </div>
     </div>
   );
@@ -181,8 +175,17 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
             </button>
             <span className="font-display font-bold text-neon-purple-bright">VILLANO·ADMIN</span>
           </div>
-          <ThemeToggle />
+          <div className="flex items-center gap-1.5">
+            <ThemeToggle />
+            <AccountArea compact />
+          </div>
         </header>
+
+        {/* Barra superior desktop: cuenta (nombre/rol) + cerrar sesion */}
+        <div className="sticky top-0 z-30 hidden items-center justify-end border-b border-base-border bg-base-panel/60 px-6 py-2.5 backdrop-blur lg:flex">
+          <AccountArea />
+        </div>
+
         <main className="min-w-0 flex-1 p-4 sm:p-6">{children}</main>
       </div>
     </div>

@@ -1,4 +1,4 @@
-import { ShoppingBag } from 'lucide-react';
+import { ShoppingCart } from 'lucide-react';
 import { useCart } from '../store/cart';
 import { formatBs } from '../lib/format';
 
@@ -19,7 +19,7 @@ export function CartBar() {
         aria-label={`Ver carrito, ${count} articulos, total ${formatBs(total)}`}
       >
         <span className="relative inline-flex items-center justify-center rounded-full bg-neon-purple/15 p-2 text-neon-purple-bright">
-          <ShoppingBag className="h-5 w-5" />
+          <ShoppingCart className="h-5 w-5" />
           <span className="absolute -right-1.5 -top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-neon-green px-1 text-xs font-bold text-base-black">
             {count}
           </span>

@@ -1,7 +1,9 @@
 import type { UpdateRolePermissionsInput } from '@villano/shared-types';
 import { prisma } from '../../lib/prisma.js';
-import { notFound } from '../../lib/errors.js';
+import { forbidden, notFound } from '../../lib/errors.js';
 import { writeAudit } from '../../lib/audit.js';
+
+const MANAGE_ROLES_KEY = 'gestionar_roles';
 
 export async function listPermissions() {
   return prisma.permission.findMany({ orderBy: { key: 'asc' } });
@@ -33,9 +35,29 @@ export async function listRolesWithMatrix() {
   });
 }
 
-export async function updateRolePermissions(roleId: string, input: UpdateRolePermissionsInput, userId: string) {
+export async function updateRolePermissions(
+  roleId: string,
+  input: UpdateRolePermissionsInput,
+  userId: string,
+  actorRoleId: string,
+) {
   const role = await prisma.role.findUnique({ where: { id: roleId } });
   if (!role) throw notFound('Rol no encontrado');
+
+  // Candado anti-lockout: nadie puede quitarle 'gestionar_roles' al rol con el
+  // que inicio sesion, porque perderia la unica via de revertirlo desde el
+  // panel (solo se arreglaria tocando la base de datos a mano). Quitarselo a
+  // OTRO rol si esta permitido: el rol propio conserva el permiso.
+  if (roleId === actorRoleId) {
+    const manageRolesPerm = await prisma.permission.findUnique({ where: { key: MANAGE_ROLES_KEY } });
+    const revokingOwnManageRoles =
+      !!manageRolesPerm && input.entries.some((e) => e.permissionId === manageRolesPerm.id && !e.allowed);
+    if (revokingOwnManageRoles) {
+      throw forbidden(
+        'No podes quitarle el permiso de gestionar roles al rol con el que iniciaste sesion. Pedile a otro administrador que lo haga.',
+      );
+    }
+  }
 
   const before = await prisma.rolePermission.findMany({ where: { roleId } });
   const beforeMap = new Map(before.map((rp) => [rp.permissionId, rp.allowed]));

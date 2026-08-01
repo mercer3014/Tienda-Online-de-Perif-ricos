@@ -11,12 +11,7 @@ export { ConfirmDialog } from './ConfirmDialog';
 export function StockPill({ status }: { status: StockStatus }) {
   const badgeClass =
     status === 'en_stock' ? 'badge-success' : status === 'pocas_unidades' ? 'badge-warning' : 'badge-danger';
-  return (
-    <span className={clsx('badge', badgeClass)}>
-      <span className="h-1.5 w-1.5 rounded-full bg-current" aria-hidden />
-      {STOCK_STATUS_LABEL[status]}
-    </span>
-  );
+  return <span className={clsx('badge', badgeClass)}>{STOCK_STATUS_LABEL[status]}</span>;
 }
 
 /** Control de paginacion compartido (Anterior/Siguiente). No se renderiza si hay una sola pagina. */
@@ -92,13 +87,14 @@ export function Thumb({ url, alt, size = 44 }: { url: string | null | undefined;
     );
   }
   return (
-    <img
-      src={assetUrl(url)}
-      alt={alt}
-      loading="lazy"
-      onError={() => setFailed(true)}
-      className="rounded-md border border-base-border object-cover"
-      style={style}
-    />
+    <div className="flex items-center justify-center overflow-hidden rounded-md border border-base-border bg-shot p-1" style={style}>
+      <img
+        src={assetUrl(url)}
+        alt={alt}
+        loading="lazy"
+        onError={() => setFailed(true)}
+        className="h-full w-full object-contain"
+      />
+    </div>
   );
 }

@@ -298,7 +298,10 @@ adminRouter.put(
   '/roles/:id/permissions',
   requirePermission('gestionar_roles'),
   validate({ params: idParam, body: updateRolePermissionsSchema }),
-  asyncHandler(async (req, res) => ok(res, await updateRolePermissions(req.params.id, req.body, getAuth(req).userId))),
+  asyncHandler(async (req, res) => {
+    const auth = getAuth(req);
+    return ok(res, await updateRolePermissions(req.params.id, req.body, auth.userId, auth.role.id));
+  }),
 );
 
 // -------------------------------- Usuarios ---------------------------------

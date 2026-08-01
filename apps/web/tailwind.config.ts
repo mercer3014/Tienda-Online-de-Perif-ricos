@@ -50,6 +50,7 @@ const config: Config = {
           DEFAULT: rgbVar('--color-accent2-solid'),
           on: rgbVar('--color-on-accent2'),
         },
+        shot: rgbVar('--color-shot-mat'),
       },
       fontFamily: {
         display: ['"Rajdhani"', '"Segoe UI"', 'system-ui', 'sans-serif'],

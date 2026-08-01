@@ -29,13 +29,6 @@ export default function CatalogPage() {
   const { data: attributes } = useAttributes();
   const { data: categories } = useCategoryTree();
 
-  // Mapa valueId -> "Atributo: Valor" para las chips de filtro y el panel.
-  const attrValueLabel = useMemo(() => {
-    const map = new Map<string, string>();
-    attributes?.forEach((attr) => attr.values.forEach((v) => map.set(v.id, `${attr.name}: ${v.value}`)));
-    return map;
-  }, [attributes]);
-
   // Construye el query string para la API a partir de la URL.
   const apiQuery = useMemo(() => {
     const q = new URLSearchParams();
@@ -80,45 +73,11 @@ export default function CatalogPage() {
     });
 
   const clearFilters = () => setParams(categoria ? new URLSearchParams({ categoria }) : new URLSearchParams());
-  const clearAll = () => setParams(new URLSearchParams());
 
   const activeCategory = categories?.find((c) => c.slug === categoria);
-  // "Limpiar filtros" (panel/vacio) afecta criterios de filtro, no la categoria (esa se quita con su propia chip).
   const hasActiveFilters = !!(minPrice || maxPrice || selectedAttrs.length || search || inStock);
   const filterCount =
     (categoria ? 1 : 0) + (minPrice ? 1 : 0) + (maxPrice ? 1 : 0) + (inStock ? 1 : 0) + selectedAttrs.length;
-
-  // Chips de filtros activos, cada una removible individualmente.
-  type Chip = { key: string; label: string; onRemove: () => void };
-  const chips: Chip[] = [];
-  if (categoria) {
-    chips.push({
-      key: 'categoria',
-      label: activeCategory?.name ?? categoria,
-      onRemove: () => update((p) => p.delete('categoria')),
-    });
-  }
-  if (search) {
-    chips.push({ key: 'search', label: `Buscar: "${search}"`, onRemove: () => update((p) => p.delete('search')) });
-  }
-  if (minPrice || maxPrice) {
-    const label = minPrice && maxPrice ? `Bs. ${minPrice} - ${maxPrice}` : minPrice ? `Desde Bs. ${minPrice}` : `Hasta Bs. ${maxPrice}`;
-    chips.push({
-      key: 'precio',
-      label,
-      onRemove: () => update((p) => { p.delete('minPrice'); p.delete('maxPrice'); }),
-    });
-  }
-  if (inStock) {
-    chips.push({ key: 'stock', label: 'Solo en stock', onRemove: () => update((p) => p.delete('inStock')) });
-  }
-  selectedAttrs.forEach((valueId) => {
-    chips.push({
-      key: `attr-${valueId}`,
-      label: attrValueLabel.get(valueId) ?? 'Filtro',
-      onRemove: () => toggleAttr(valueId),
-    });
-  });
 
   // Cierra el panel de filtros al pasar a desktop.
   useEffect(() => {
@@ -226,24 +185,6 @@ export default function CatalogPage() {
         <p className="mb-3 text-sm text-txt-faint">
           {data.total} {data.total === 1 ? 'resultado' : 'resultados'}
         </p>
-      )}
-
-      {chips.length > 0 && (
-        <div className="mb-4 flex flex-wrap items-center gap-2">
-          {chips.map((chip) => (
-            <button
-              key={chip.key}
-              onClick={chip.onRemove}
-              className="inline-flex items-center gap-1 rounded-full border border-neon-purple/40 bg-neon-purple/10 px-3 py-1 text-xs text-neon-purple-bright transition-colors hover:border-status-out hover:bg-status-out/10 hover:text-status-out"
-            >
-              {chip.label}
-              <X className="h-3 w-3" />
-            </button>
-          ))}
-          <button onClick={clearAll} className="text-xs text-status-out hover:underline">
-            Limpiar
-          </button>
-        </div>
       )}
 
       <div className="flex gap-6">

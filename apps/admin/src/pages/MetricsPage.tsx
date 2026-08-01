@@ -40,7 +40,7 @@ export default function MetricsPage() {
           <h2 className="mb-3 font-display text-sm uppercase tracking-wide text-neon-purple-bright">Abandono de carrito</h2>
           <div className="flex items-end gap-6">
             <div>
-              <p className="font-display text-3xl font-bold text-neon-green">{data.cartAbandonment.addToCart}</p>
+              <p className="font-display text-3xl font-bold text-txt-primary">{data.cartAbandonment.addToCart}</p>
               <p className="text-xs text-txt-muted">agregados al carrito</p>
             </div>
             <div>
@@ -70,7 +70,7 @@ function RankCard({ title, rows, unit }: { title: string; rows: { productId: str
             <li key={r.productId} className="flex items-center gap-2 text-sm">
               <span className="font-display text-txt-faint">{i + 1}.</span>
               <span className="min-w-0 flex-1 truncate text-txt-primary">{r.name}</span>
-              <span className="text-neon-green">{r.count} {unit}</span>
+              <span className="text-txt-muted">{r.count} {unit}</span>
             </li>
           ))}
         </ol>
