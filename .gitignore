@@ -60,3 +60,6 @@ Desktop.ini
 .turbo/
 coverage/
 .nyc_output/
+
+# Vercel (link local proyecto -> deployment, especifico de cada maquina)
+.vercel
