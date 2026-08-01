@@ -14,6 +14,8 @@ interface ToastState {
 
 let counter = 0;
 const MAX_TOASTS = 4;
+// Debe coincidir con la duracion de la animacion .toast-pop en index.css.
+export const TOAST_MS = 4000;
 const timers = new Map<number, ReturnType<typeof setTimeout>>();
 
 export const useToast = create<ToastState>((set, get) => ({
@@ -30,7 +32,7 @@ export const useToast = create<ToastState>((set, get) => ({
         setTimeout(() => {
           set((s) => ({ toasts: s.toasts.filter((t) => t.id !== existing.id) }));
           timers.delete(existing.id);
-        }, 4000),
+        }, TOAST_MS),
       );
       return;
     }
@@ -46,7 +48,7 @@ export const useToast = create<ToastState>((set, get) => ({
       setTimeout(() => {
         set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) }));
         timers.delete(id);
-      }, 4000),
+      }, TOAST_MS),
     );
   },
   dismiss: (id) => {

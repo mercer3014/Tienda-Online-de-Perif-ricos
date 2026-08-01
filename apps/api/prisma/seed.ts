@@ -2,10 +2,11 @@
 import { PrismaClient, ProductStatus } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import sharp from 'sharp';
-import { mkdir, readFile, writeFile, rm } from 'node:fs/promises';
+import { readFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { saveProductImage } from '../src/lib/imageStorage.js';
 
 const prisma = new PrismaClient();
 const SALT_ROUNDS = Number(process.env.BCRYPT_SALT_ROUNDS ?? 12);
@@ -13,7 +14,6 @@ const DEFAULT_PASSWORD = 'Villano#2025';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SRC_IMAGES = path.resolve(__dirname, '../uploads/seed/catalogo_imagenes');
-const OUT_IMAGES = path.resolve(__dirname, '../uploads/seed/products');
 const MANIFEST = path.join(SRC_IMAGES, 'catalogo_manifest.csv');
 
 // -------------------------- Roles / permisos / usuarios -------------------
@@ -180,10 +180,6 @@ async function main() {
       });
     }
 
-    // ---- Imagenes: preparar carpeta de salida ----
-    await rm(OUT_IMAGES, { recursive: true, force: true });
-    await mkdir(OUT_IMAGES, { recursive: true });
-
     // ---- Productos ----
     const createdProductIds: string[] = [];
     let idx = 0;
@@ -215,9 +211,9 @@ async function main() {
         if (!existsSync(abs)) continue;
         const outName = `${slugify(r.producto)}-${idx}-${imgOrder}.webp`;
         const buf = await sharp(abs).resize({ width: 1000, height: 1000, fit: 'inside', withoutEnlargement: true }).webp({ quality: 82 }).toBuffer();
-        await writeFile(path.join(OUT_IMAGES, outName), buf);
+        const urlWebp = await saveProductImage(outName, buf);
         await prisma.productImage.create({
-          data: { productId: product.id, urlWebp: `/uploads/seed/products/${outName}`, displayOrder: imgOrder, isPrimary: imgOrder === 0 },
+          data: { productId: product.id, urlWebp, displayOrder: imgOrder, isPrimary: imgOrder === 0 },
         });
         imgOrder++;
       }

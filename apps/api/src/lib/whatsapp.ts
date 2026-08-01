@@ -1,5 +1,3 @@
-import type { DeliveryMethod } from '@villano/shared-types';
-import { DELIVERY_METHOD_LABEL } from '@villano/shared-types';
 import { env } from '../config/env.js';
 import { formatBs } from './money.js';
 
@@ -11,32 +9,33 @@ interface WaItem {
   subtotal: number;
 }
 
-/** Arma el texto pre-cargado del pedido para WhatsApp. */
+/**
+ * Arma el texto pre-cargado del pedido para WhatsApp, con tono de mensaje
+ * que escribiria el cliente (no un comprobante/formulario). Muestra que
+ * producto eligio y su precio; NO suma un total (eso ya lo vio en la tienda).
+ */
 export function buildWhatsappText(params: {
   orderNumber: string;
   items: WaItem[];
-  total: number;
   customerName?: string | null;
   customerPhone?: string | null;
-  deliveryMethod: DeliveryMethod;
 }): string {
+  const intro = params.customerName
+    ? `Soy ${params.customerName}${params.customerPhone ? ` (${params.customerPhone})` : ''}. `
+    : '';
   const lines: string[] = [];
-  lines.push('*VILLANO GAMER STORE*');
-  lines.push('Nuevo pedido');
-  lines.push(`Pedido: ${params.orderNumber}`);
+  lines.push(`¡Hola! ${intro}Quiero hacer este pedido:`);
   lines.push('');
   params.items.forEach((it, i) => {
     const label = it.variantLabel ? ` (${it.variantLabel})` : '';
-    lines.push(`${i + 1}. ${it.productName}${label}`);
-    lines.push(`   ${it.quantity} x ${formatBs(it.unitPrice)} = ${formatBs(it.subtotal)}`);
+    const price =
+      it.quantity > 1 ? `${it.quantity} unidades, ${formatBs(it.unitPrice)} c/u` : formatBs(it.unitPrice);
+    lines.push(`${i + 1}. ${it.productName}${label} — ${price}`);
   });
   lines.push('');
-  lines.push(`*TOTAL: ${formatBs(params.total)}*`);
-  lines.push(`Entrega: ${DELIVERY_METHOD_LABEL[params.deliveryMethod]}`);
-  if (params.customerName) lines.push(`Nombre: ${params.customerName}`);
-  if (params.customerPhone) lines.push(`Contacto: ${params.customerPhone}`);
+  lines.push('¿Coordinamos el pago y la entrega? ¡Gracias!');
   lines.push('');
-  lines.push('Quiero coordinar el pago y la entrega. ¡Gracias!');
+  lines.push(`Nº de pedido: ${params.orderNumber}`);
   return lines.join('\n');
 }
 

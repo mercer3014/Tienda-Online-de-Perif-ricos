@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import type { CategoryNode, CreateCategoryInput, MoveCategoryInput, UpdateCategoryInput } from '@villano/shared-types';
 import { prisma } from '../../lib/prisma.js';
 import { badRequest, conflict, notFound } from '../../lib/errors.js';
@@ -179,7 +180,7 @@ export async function moveCategory(id: string, input: MoveCategoryInput, userId:
   return cat;
 }
 
-/** Borrado LOGICO. Bloquea si tiene subcategorias activas o productos activos. */
+/** Visibilidad publica: active -> false. Bloquea si tiene subcategorias u productos activos. */
 export async function softDeleteCategory(id: string, userId: string) {
   const existing = await prisma.category.findUnique({
     where: { id },
@@ -187,15 +188,58 @@ export async function softDeleteCategory(id: string, userId: string) {
   });
   if (!existing) throw notFound('Categoria no encontrada');
   // Idempotencia: repetir la accion no debe duplicar auditoria ni "exitos" falsos.
-  if (!existing.active) throw conflict('La categoria ya esta desactivada');
+  if (!existing.active) throw conflict('La categoria ya esta oculta del catalogo');
 
   const activeChildren = await prisma.category.count({ where: { parentId: id, active: true } });
-  if (activeChildren > 0) throw conflict('La categoria tiene subcategorias activas');
+  if (activeChildren > 0) throw conflict('La categoria tiene subcategorias visibles');
   const activeProducts = await prisma.product.count({ where: { categoryId: id, status: 'activo' } });
-  if (activeProducts > 0) throw conflict('La categoria tiene productos activos');
+  if (activeProducts > 0) throw conflict('La categoria tiene productos visibles');
 
   const cat = await prisma.category.update({ where: { id }, data: { active: false } });
-  await writeAudit({ userId, action: 'eliminar_categoria', entityType: 'category', entityId: id, oldValue: { active: true }, newValue: { active: false } });
+  await writeAudit({ userId, action: 'ocultar_categoria', entityType: 'category', entityId: id, oldValue: { active: true }, newValue: { active: false } });
   invalidateCategoryCache();
   return cat;
+}
+
+/**
+ * Borrado FISICO real. La FK de Product.categoryId (y la auto-referencia de
+ * Category.parentId) es RESTRICT a proposito: nunca queremos borrar en
+ * cascada productos/subcategorias al borrar una categoria. Se verifica ANTES
+ * de intentar el delete (en vez de parsear el error de Postgres despues):
+ * el RESTRICT nativo no siempre llega envuelto como PrismaClientKnownRequestError
+ * con codigo P2003 (a veces Prisma lo entrega como error crudo del conector),
+ * asi que confiar en detectar ese codigo es fragil.
+ */
+export async function deleteCategoryPermanently(id: string, userId: string) {
+  const existing = await prisma.category.findUnique({ where: { id } });
+  if (!existing) throw notFound('Categoria no encontrada');
+
+  const [childrenCount, productsCount] = await Promise.all([
+    prisma.category.count({ where: { parentId: id } }),
+    prisma.product.count({ where: { categoryId: id } }),
+  ]);
+  if (childrenCount > 0 || productsCount > 0) {
+    throw conflict('No se puede eliminar: la categoria todavia tiene productos o subcategorias asociadas. Movelos o eliminalos primero.');
+  }
+
+  try {
+    await prisma.category.delete({ where: { id } });
+  } catch (err) {
+    // Red de seguridad ante una carrera (se creo un producto/subcategoria
+    // justo entre el chequeo y el delete): mismo mensaje amigable en vez del error crudo.
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2003') {
+      throw conflict('No se puede eliminar: la categoria todavia tiene productos o subcategorias asociadas. Movelos o eliminalos primero.');
+    }
+    throw err;
+  }
+
+  await writeAudit({
+    userId,
+    action: 'eliminar_categoria_permanente',
+    entityType: 'category',
+    entityId: id,
+    oldValue: { name: existing.name, slug: existing.slug },
+  });
+  invalidateCategoryCache();
+  return { id };
 }

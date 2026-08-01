@@ -1,6 +1,6 @@
 import clsx from 'clsx';
 import type { ReactNode } from 'react';
-import { AlertTriangle, X } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Info, X, XCircle } from 'lucide-react';
 import { useToast } from '../lib/toast';
 import { useDismissable } from '../lib/useDismissable';
 
@@ -69,26 +69,38 @@ export function Modal({ title, onClose, children, wide }: { title: string; onClo
   );
 }
 
+const TOAST_ICON = { success: CheckCircle2, error: XCircle, info: Info } as const;
+
+/**
+ * Caja de confirmacion centrada (no una notificacion de esquina): aparece en
+ * medio de la pantalla, se nota, y se desvanece sola. No bloquea la pagina
+ * (pointer-events-none en el contenedor) salvo la caja misma, que se puede
+ * tocar para descartarla antes.
+ */
 export function Toaster() {
   const toasts = useToast((s) => s.toasts);
   const dismiss = useToast((s) => s.dismiss);
   return (
-    <div className="fixed bottom-4 right-4 z-[100] flex w-full max-w-sm flex-col gap-2">
-      {toasts.map((t) => (
-        <div
-          key={t.id}
-          onClick={() => dismiss(t.id)}
-          role="status"
-          className={clsx(
-            'cursor-pointer rounded-md border px-4 py-3 text-sm shadow-panel backdrop-blur',
-            t.type === 'success' && 'border-status-stock/50 bg-status-stock/10 text-status-stock',
-            t.type === 'error' && 'border-status-out/50 bg-status-out/10 text-status-out',
-            t.type === 'info' && 'border-neon-purple/50 bg-neon-purple/10 text-neon-purple-bright',
-          )}
-        >
-          {t.message}
-        </div>
-      ))}
+    <div className="pointer-events-none fixed inset-0 z-[100] flex flex-col items-center justify-center gap-3 p-4">
+      {toasts.map((t) => {
+        const Icon = TOAST_ICON[t.type];
+        return (
+          <div
+            key={t.id}
+            onClick={() => dismiss(t.id)}
+            role="status"
+            className={clsx(
+              'toast-pop pointer-events-auto flex w-full max-w-sm cursor-pointer items-center gap-3 rounded-lg border bg-base-panel px-5 py-4 text-center text-sm font-medium shadow-panel',
+              t.type === 'success' && 'border-status-stock/50 text-status-stock',
+              t.type === 'error' && 'border-status-out/50 text-status-out',
+              t.type === 'info' && 'border-neon-purple/50 text-neon-purple-bright',
+            )}
+          >
+            <Icon className="h-5 w-5 shrink-0" />
+            <span className="flex-1">{t.message}</span>
+          </div>
+        );
+      })}
     </div>
   );
 }

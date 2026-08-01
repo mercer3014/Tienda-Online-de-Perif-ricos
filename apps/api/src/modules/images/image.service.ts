@@ -1,13 +1,9 @@
 import sharp from 'sharp';
 import { randomUUID } from 'node:crypto';
-import { mkdir, writeFile, unlink } from 'node:fs/promises';
-import path from 'node:path';
 import { prisma } from '../../lib/prisma.js';
-import { env } from '../../config/env.js';
 import { badRequest, notFound } from '../../lib/errors.js';
 import { writeAudit } from '../../lib/audit.js';
-
-const PRODUCTS_DIR = path.join(env.uploadDirAbs, 'products');
+import { deleteProductImage, saveProductImage } from '../../lib/imageStorage.js';
 
 /**
  * Procesa una imagen con Sharp (redimension + compresion + WebP) y la guarda.
@@ -22,10 +18,7 @@ export async function processAndStoreImage(
   if (!product) throw notFound('Producto no encontrado');
   if (!file.mimetype.startsWith('image/')) throw badRequest('El archivo no es una imagen valida');
 
-  await mkdir(PRODUCTS_DIR, { recursive: true });
-
   const fileName = `${productId}-${randomUUID()}.webp`;
-  const absPath = path.join(PRODUCTS_DIR, fileName);
 
   let webp: Buffer;
   try {
@@ -34,12 +27,11 @@ export async function processAndStoreImage(
       .resize({ width: 1200, height: 1200, fit: 'inside', withoutEnlargement: true })
       .webp({ quality: 82 })
       .toBuffer();
-    await writeFile(absPath, webp);
   } catch {
     throw badRequest('No se pudo procesar la imagen (formato no soportado o corrupta)');
   }
+  const urlWebp = await saveProductImage(fileName, webp);
 
-  const urlWebp = `/uploads/products/${fileName}`;
   const existingCount = await prisma.productImage.count({ where: { productId } });
   const image = await prisma.productImage.create({
     data: {
@@ -76,11 +68,7 @@ export async function deleteImage(imageId: string, userId: string) {
 
   await prisma.productImage.delete({ where: { id: imageId } });
 
-  // Borra el archivo fisico (si esta bajo uploads/products).
-  if (image.urlWebp.startsWith('/uploads/products/')) {
-    const abs = path.join(env.uploadDirAbs, 'products', path.basename(image.urlWebp));
-    await unlink(abs).catch(() => undefined);
-  }
+  await deleteProductImage(image.urlWebp);
 
   // Si borramos la principal, promover otra.
   if (image.isPrimary) {

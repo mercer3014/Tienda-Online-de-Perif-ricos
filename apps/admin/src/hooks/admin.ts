@@ -89,6 +89,10 @@ export function useProductMutations() {
       mutationFn: (id: string) => apiFetch(`/admin/products/${id}`, { method: 'DELETE' }),
       onSuccess: invalidate,
     }),
+    removePermanent: useMutation({
+      mutationFn: (id: string) => apiFetch(`/admin/products/${id}/permanent`, { method: 'DELETE' }),
+      onSuccess: invalidate,
+    }),
   };
 }
 
@@ -178,6 +182,7 @@ export function useCategoryMutations() {
     update: useMutation({ mutationFn: ({ id, body }: { id: string; body: UpdateCategoryInput }) => apiFetch(`/admin/categories/${id}`, { method: 'PATCH', body }), onSuccess: invalidate }),
     move: useMutation({ mutationFn: ({ id, body }: { id: string; body: MoveCategoryInput }) => apiFetch(`/admin/categories/${id}/move`, { method: 'PATCH', body }), onSuccess: invalidate }),
     remove: useMutation({ mutationFn: (id: string) => apiFetch(`/admin/categories/${id}`, { method: 'DELETE' }), onSuccess: invalidate }),
+    removePermanent: useMutation({ mutationFn: (id: string) => apiFetch(`/admin/categories/${id}/permanent`, { method: 'DELETE' }), onSuccess: invalidate }),
   };
 }
 

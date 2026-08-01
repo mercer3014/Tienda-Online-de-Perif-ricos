@@ -2,6 +2,7 @@ import type { CreateProductInput, UpdateProductInput } from '@villano/shared-typ
 import { prisma } from '../../lib/prisma.js';
 import { badRequest, conflict, notFound } from '../../lib/errors.js';
 import { writeAudit } from '../../lib/audit.js';
+import { deleteProductImage } from '../../lib/imageStorage.js';
 import { productInclude, toDetail } from './product.serializer.js';
 import { toNumber } from '../../lib/money.js';
 
@@ -108,12 +109,12 @@ export async function updateProduct(id: string, input: UpdateProductInput, userI
   return toDetail(updated);
 }
 
-/** Borrado LOGICO: status -> inactivo. Nunca DELETE fisico. */
+/** Visibilidad publica: status -> inactivo. El producto NO se borra, solo se oculta del catalogo. */
 export async function softDeleteProduct(id: string, userId: string) {
   const existing = await prisma.product.findUnique({ where: { id } });
   if (!existing) throw notFound('Producto no encontrado');
-  // Idempotencia: no repetir auditoria si ya esta inactivo.
-  if (existing.status === 'inactivo') throw conflict('El producto ya esta desactivado');
+  // Idempotencia: no repetir auditoria si ya esta oculto.
+  if (existing.status === 'inactivo') throw conflict('El producto ya esta oculto del catalogo');
   const updated = await prisma.product.update({
     where: { id },
     data: { status: 'inactivo' },
@@ -121,11 +122,35 @@ export async function softDeleteProduct(id: string, userId: string) {
   });
   await writeAudit({
     userId,
-    action: 'eliminar_producto',
+    action: 'ocultar_producto',
     entityType: 'product',
     entityId: id,
     oldValue: { status: existing.status },
     newValue: { status: 'inactivo' },
   });
   return toDetail(updated);
+}
+
+/**
+ * Borrado FISICO real: elimina el producto de la base (cascada a variantes,
+ * imagenes y eventos de metricas) y los archivos de imagen en disco. Los
+ * pedidos ya realizados NO se ven afectados: OrderItem guarda un snapshot
+ * (nombre/precio) independiente y su variantId queda en null (onDelete: SetNull).
+ */
+export async function deleteProductPermanently(id: string, userId: string) {
+  const existing = await prisma.product.findUnique({ where: { id }, include: { images: true } });
+  if (!existing) throw notFound('Producto no encontrado');
+
+  await prisma.product.delete({ where: { id } });
+
+  await Promise.all(existing.images.map((img) => deleteProductImage(img.urlWebp)));
+
+  await writeAudit({
+    userId,
+    action: 'eliminar_producto_permanente',
+    entityType: 'product',
+    entityId: id,
+    oldValue: { name: existing.name, slug: existing.slug },
+  });
+  return { id };
 }

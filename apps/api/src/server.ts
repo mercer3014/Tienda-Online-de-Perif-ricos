@@ -6,9 +6,9 @@ async function main() {
   // Verifica conexion a la base antes de escuchar.
   await prisma.$connect();
   const app = createApp();
-  const server = app.listen(env.API_PORT, () => {
+  const server = app.listen(env.effectivePort, () => {
     // eslint-disable-next-line no-console
-    console.log(`[API] Villano Gamer Store escuchando en http://localhost:${env.API_PORT}/api`);
+    console.log(`[API] Villano Gamer Store escuchando en http://localhost:${env.effectivePort}/api`);
   });
 
   const shutdown = async (signal: string) => {

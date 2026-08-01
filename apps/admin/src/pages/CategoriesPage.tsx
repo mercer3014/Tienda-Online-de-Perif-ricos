@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Check, X, Pencil, Trash2, RotateCcw } from 'lucide-react';
+import { Check, X, Pencil, Trash2, Eye, EyeOff } from 'lucide-react';
 import type { CategoryNode } from '@villano/shared-types';
 import { createCategorySchema } from '@villano/shared-types';
 import { useAdminCategoryTree, useCategoryMutations } from '../hooks/admin';
@@ -84,7 +84,7 @@ export default function CategoriesPage() {
 
 function CategoryRow({ node, allNodes, depth }: { node: CategoryNode; allNodes: CategoryNode[]; depth: number }) {
   const { can } = useAuth();
-  const { update, move, remove } = useCategoryMutations();
+  const { update, move, remove, removePermanent } = useCategoryMutations();
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(node.name);
 
@@ -107,17 +107,39 @@ function CategoryRow({ node, allNodes, depth }: { node: CategoryNode; allNodes: 
       onSuccess: () => toast.success('Actualizada'),
     });
 
-  const del = async () => {
+  const hide = async () => {
     const ok = await confirmAction({
-      title: `¿Desactivar "${node.name}"?`,
-      description: 'Dejará de mostrarse en el catálogo, pero NO se elimina: podés reactivarla después desde este mismo listado. Solo se puede desactivar si no tiene productos ni subcategorías activas.',
-      confirmLabel: 'Desactivar',
-      danger: true,
+      title: `¿Ocultar "${node.name}" del catálogo público?`,
+      description: 'El cliente ya no la va a ver en la tienda. La categoría sigue guardada en el sistema y podés volver a mostrarla cuando quieras. Solo se puede ocultar si no tiene productos ni subcategorías visibles.',
+      confirmLabel: 'Ocultar del catálogo',
     });
     if (!ok) return;
     remove.mutate(node.id, {
-      onSuccess: () => toast.success('Categoría desactivada'),
-      onError: (e) => toast.error(e instanceof Error ? e.message : 'No se pudo (tiene productos/subcategorías)'),
+      onSuccess: () => toast.success('Categoría oculta del catálogo'),
+      onError: (e) => toast.error(e instanceof Error ? e.message : 'No se pudo (tiene productos/subcategorías visibles)'),
+    });
+  };
+
+  const show = () =>
+    update.mutate(
+      { id: node.id, body: { active: true } },
+      {
+        onSuccess: () => toast.success('Categoría visible en el catálogo'),
+        onError: (e) => toast.error(e instanceof Error ? e.message : 'Error'),
+      },
+    );
+
+  const delPermanent = async () => {
+    const ok = await confirmAction({
+      title: `¿Eliminar "${node.name}" para siempre?`,
+      description: 'Esto borra la categoría de la base de datos DEFINITIVAMENTE. No se puede deshacer. Solo se puede eliminar si no tiene productos ni subcategorías asociadas (movelos o eliminalos primero).',
+      confirmLabel: 'Eliminar para siempre',
+      danger: true,
+    });
+    if (!ok) return;
+    removePermanent.mutate(node.id, {
+      onSuccess: () => toast.success('Categoría eliminada permanentemente'),
+      onError: (e) => toast.error(e instanceof Error ? e.message : 'No se pudo (tiene productos/subcategorías asociadas)'),
     });
   };
 
@@ -136,10 +158,15 @@ function CategoryRow({ node, allNodes, depth }: { node: CategoryNode; allNodes: 
           <>
             <span className={`font-medium ${node.active ? 'text-txt-primary' : 'text-txt-faint line-through'}`}>{node.name}</span>
             {node.isPromo && <span className="rounded-full bg-neon-green/15 px-2 text-xs text-neon-green">{node.promoBadgeText ?? 'PROMO'}</span>}
-            {!node.active && <span className="badge badge-danger">Inactiva</span>}
+            <span
+              className={node.active ? 'badge badge-success' : 'badge badge-danger'}
+              title={node.active ? 'Visible: los clientes la ven en el catálogo público' : 'Oculta: no aparece en el catálogo público, pero sigue guardada en el sistema'}
+            >
+              {node.active ? 'Visible' : 'Oculta'}
+            </span>
             <span className="text-xs text-txt-faint">{node.productCount ?? 0} prod.</span>
             <div className="ml-auto flex items-center gap-2 text-xs">
-              {node.active ? (
+              {node.active && (
                 <>
                   {can('editar_categoria') && <ActionIcon icon={Pencil} label="Renombrar categoría" onClick={() => setEditing(true)} />}
                   {can('editar_categoria') && <button className="rounded px-2 py-1 text-xs text-txt-muted hover:bg-base-panel hover:text-txt-primary" onClick={togglePromo}>{node.isPromo ? 'Quitar promo' : 'Promo'}</button>}
@@ -149,27 +176,17 @@ function CategoryRow({ node, allNodes, depth }: { node: CategoryNode; allNodes: 
                       {parentOptions.map((c) => <option key={c.id} value={c.id}>{c.label.trim()}</option>)}
                     </select>
                   )}
-                  {can('eliminar_categoria') && (
-                    <ActionIcon icon={Trash2} label="Desactivar categoría" danger disabled={remove.isPending} onClick={del} />
-                  )}
                 </>
-              ) : (
-                can('editar_categoria') && (
-                  <ActionIcon
-                    icon={RotateCcw}
-                    label="Reactivar categoría"
-                    disabled={update.isPending}
-                    onClick={() =>
-                      update.mutate(
-                        { id: node.id, body: { active: true } },
-                        {
-                          onSuccess: () => toast.success('Categoría reactivada'),
-                          onError: (e) => toast.error(e instanceof Error ? e.message : 'Error'),
-                        },
-                      )
-                    }
-                  />
+              )}
+              {can('eliminar_categoria') && (
+                node.active ? (
+                  <ActionIcon icon={EyeOff} label="Ocultar del catálogo público" disabled={remove.isPending} onClick={hide} />
+                ) : (
+                  <ActionIcon icon={Eye} label="Mostrar en el catálogo público" disabled={update.isPending} onClick={show} />
                 )
+              )}
+              {can('eliminar_categoria') && (
+                <ActionIcon icon={Trash2} label="Eliminar para siempre" danger disabled={removePermanent.isPending} onClick={delPermanent} />
               )}
             </div>
           </>

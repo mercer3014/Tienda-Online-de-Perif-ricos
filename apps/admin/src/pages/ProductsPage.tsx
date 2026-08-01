@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
-import { ArrowUpDown, ArrowUp, ArrowDown, Pencil, Trash2, Search, Plus } from 'lucide-react';
+import { ArrowUpDown, ArrowUp, ArrowDown, Pencil, Trash2, Search, Plus, Eye, EyeOff } from 'lucide-react';
 import type { ProductDetailDTO, StockStatus } from '@villano/shared-types';
 import { useAdminProducts, useProductMutations } from '../hooks/admin';
 import { useAuth } from '../store/auth';
@@ -23,7 +23,7 @@ export default function ProductsPage() {
   const searchBoxRef = useRef<HTMLDivElement>(null);
 
   const { data, isLoading, isError, refetch } = useAdminProducts('page=1&pageSize=200');
-  const { remove } = useProductMutations();
+  const { remove, removePermanent, update } = useProductMutations();
 
   const categories = useMemo(
     () => Array.from(new Set((data?.items ?? []).map((p) => p.categoryName))).sort(),
@@ -63,16 +63,39 @@ export default function ProductsPage() {
   const toggleSort = (key: SortKey) =>
     setSort((s) => (s.key === key ? { key, dir: (s.dir * -1) as 1 | -1 } : { key, dir: 1 }));
 
-  const onDelete = async (p: ProductDetailDTO) => {
+  const onHide = async (p: ProductDetailDTO) => {
     const ok = await confirmAction({
-      title: `¿Desactivar "${p.name}"?`,
-      description: 'Dejará de mostrarse en el catálogo público, pero NO se elimina de la base: podés reactivarlo después cambiando su estado a "Activo".',
-      confirmLabel: 'Desactivar',
-      danger: true,
+      title: `¿Ocultar "${p.name}" del catálogo público?`,
+      description: 'El cliente ya no lo va a ver en la tienda. El producto sigue guardado en el sistema y podés volver a mostrarlo cuando quieras.',
+      confirmLabel: 'Ocultar del catálogo',
     });
     if (!ok) return;
     remove.mutate(p.id, {
-      onSuccess: () => toast.success('Producto desactivado'),
+      onSuccess: () => toast.success('Producto oculto del catálogo'),
+      onError: (e) => toast.error(e instanceof Error ? e.message : 'Error'),
+    });
+  };
+
+  const onShow = async (p: ProductDetailDTO) => {
+    update.mutate(
+      { id: p.id, body: { status: 'activo' } },
+      {
+        onSuccess: () => toast.success('Producto visible en el catálogo'),
+        onError: (e) => toast.error(e instanceof Error ? e.message : 'Error'),
+      },
+    );
+  };
+
+  const onDeletePermanent = async (p: ProductDetailDTO) => {
+    const ok = await confirmAction({
+      title: `¿Eliminar "${p.name}" para siempre?`,
+      description: 'Esto borra el producto, sus variantes y sus imágenes de la base de datos DEFINITIVAMENTE. No se puede deshacer. Los pedidos ya realizados con este producto no se ven afectados.',
+      confirmLabel: 'Eliminar para siempre',
+      danger: true,
+    });
+    if (!ok) return;
+    removePermanent.mutate(p.id, {
+      onSuccess: () => toast.success('Producto eliminado permanentemente'),
       onError: (e) => toast.error(e instanceof Error ? e.message : 'Error'),
     });
   };
@@ -134,9 +157,9 @@ export default function ProductsPage() {
           {categories.map((c) => <option key={c} value={c}>{c}</option>)}
         </select>
         <select className="input" value={status} onChange={(e) => setStatus(e.target.value)}>
-          <option value="">Todos los estados</option>
-          <option value="activo">Activo</option>
-          <option value="inactivo">Inactivo</option>
+          <option value="">Cualquier visibilidad</option>
+          <option value="activo">Visible en el catálogo</option>
+          <option value="inactivo">Oculto del catálogo</option>
         </select>
       </div>
 
@@ -157,7 +180,7 @@ export default function ProductsPage() {
                 <SortHead label="Precio" k="basePrice" />
                 <SortHead label="Variantes" k="variants" />
                 <SortHead label="Stock" k="stock" />
-                <SortHead label="Estado" k="status" />
+                <SortHead label="Visibilidad" k="status" />
                 <th className="p-3 text-right text-xs font-semibold uppercase tracking-wide text-txt-muted">Acciones</th>
               </tr>
             </thead>
@@ -181,15 +204,25 @@ export default function ProductsPage() {
                   <td className="p-3 text-txt-muted">{p.variants.length}</td>
                   <td className="p-3"><StockPill status={p.aggregateStock} /></td>
                   <td className="p-3">
-                    <span className={p.status === 'activo' ? 'badge badge-success' : 'badge badge-danger'}>
-                      {p.status === 'activo' ? 'Activo' : 'Inactivo'}
+                    <span
+                      className={p.status === 'activo' ? 'badge badge-success' : 'badge badge-danger'}
+                      title={p.status === 'activo' ? 'Visible: los clientes lo ven en el catálogo público' : 'Oculto: no aparece en el catálogo público, pero sigue guardado en el sistema'}
+                    >
+                      {p.status === 'activo' ? 'Visible' : 'Oculto'}
                     </span>
                   </td>
                   <td className="p-3">
                     <div className="flex items-center justify-end gap-1">
                       <ActionIcon icon={Pencil} label="Editar producto" onClick={() => setEditing(p.id)} />
-                      {can('eliminar_producto') && p.status === 'activo' && (
-                        <ActionIcon icon={Trash2} label="Desactivar producto" danger disabled={remove.isPending} onClick={() => onDelete(p)} />
+                      {can('eliminar_producto') && (
+                        p.status === 'activo' ? (
+                          <ActionIcon icon={EyeOff} label="Ocultar del catálogo público" disabled={remove.isPending} onClick={() => onHide(p)} />
+                        ) : (
+                          <ActionIcon icon={Eye} label="Mostrar en el catálogo público" disabled={update.isPending} onClick={() => onShow(p)} />
+                        )
+                      )}
+                      {can('eliminar_producto') && (
+                        <ActionIcon icon={Trash2} label="Eliminar para siempre" danger disabled={removePermanent.isPending} onClick={() => onDeletePermanent(p)} />
                       )}
                     </div>
                   </td>

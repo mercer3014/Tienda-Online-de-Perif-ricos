@@ -26,11 +26,11 @@ import { validate, getQuery } from '../middleware/validate.js';
 import { requireAuth, requirePermission, getAuth } from '../middleware/auth.js';
 import { env } from '../config/env.js';
 
-import { adminListProducts, createProduct, softDeleteProduct, updateProduct } from '../modules/products/product.admin.service.js';
+import { adminListProducts, createProduct, deleteProductPermanently, softDeleteProduct, updateProduct } from '../modules/products/product.admin.service.js';
 import { getProductById } from '../modules/products/product.service.js';
 import { createVariant, deleteVariant, quickUpdateVariant, updateVariant } from '../modules/variants/variant.service.js';
 import { deleteImage, processAndStoreImage, setPrimaryImage } from '../modules/images/image.service.js';
-import { getCategoryTree, createCategory, updateCategory, moveCategory, softDeleteCategory } from '../modules/categories/category.service.js';
+import { getCategoryTree, createCategory, updateCategory, moveCategory, softDeleteCategory, deleteCategoryPermanently } from '../modules/categories/category.service.js';
 import { changeOrderStatus, getOrder, listOrders, listOrdersForExport } from '../modules/orders/order.service.js';
 import { listRolesWithMatrix, listPermissions, updateRolePermissions } from '../modules/roles/role.service.js';
 import { createUser, deactivateUser, listUsers, updateUser } from '../modules/users/user.service.js';
@@ -120,6 +120,14 @@ adminRouter.delete(
   requirePermission('eliminar_producto'),
   validate({ params: idParam }),
   asyncHandler(async (req, res) => ok(res, await softDeleteProduct(req.params.id, getAuth(req).userId))),
+);
+
+// Borrado fisico real (libera espacio/imagenes). Distinto de ocultar del catalogo.
+adminRouter.delete(
+  '/products/:id/permanent',
+  requirePermission('eliminar_producto'),
+  validate({ params: idParam }),
+  asyncHandler(async (req, res) => ok(res, await deleteProductPermanently(req.params.id, getAuth(req).userId))),
 );
 
 // -------------------------------- Variantes --------------------------------
@@ -212,6 +220,14 @@ adminRouter.delete(
   requirePermission('eliminar_categoria'),
   validate({ params: idParam }),
   asyncHandler(async (req, res) => ok(res, await softDeleteCategory(req.params.id, getAuth(req).userId))),
+);
+
+// Borrado fisico real. Distinto de ocultar del catalogo.
+adminRouter.delete(
+  '/categories/:id/permanent',
+  requirePermission('eliminar_categoria'),
+  validate({ params: idParam }),
+  asyncHandler(async (req, res) => ok(res, await deleteCategoryPermanently(req.params.id, getAuth(req).userId))),
 );
 
 // ---------------------------------- Pedidos --------------------------------

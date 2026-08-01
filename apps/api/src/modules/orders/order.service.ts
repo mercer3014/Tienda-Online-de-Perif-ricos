@@ -126,10 +126,8 @@ export async function createOrder(input: CreateOrderInput): Promise<CreatedOrder
   const whatsappText = buildWhatsappText({
     orderNumber: order.orderNumber,
     items: itemsData.map((i) => ({ ...i, unitPrice: toNumber(i.unitPrice), subtotal: toNumber(i.subtotal) })),
-    total: toNumber(total),
     customerName: input.customerName,
     customerPhone: input.customerPhone,
-    deliveryMethod: input.deliveryMethod ?? 'retiro',
   });
   const whatsappUrl = buildWhatsappUrl(whatsappText);
 
