@@ -67,6 +67,19 @@ pnpm dev
 - Admin:     http://localhost:5174
 - API:       http://localhost:4000/api
 
+## Producción
+
+| Servicio | URL |
+| -------- | --- |
+| Catálogo público | https://villano-gamer-web-alex-cerezos-projects.vercel.app |
+| Panel admin       | https://villano-gamer-admin-alex-cerezos-projects.vercel.app |
+| API               | https://villano-gamer-api.onrender.com/api |
+
+Infraestructura: Vercel (web + admin), Render (API), Supabase (Postgres +
+Storage de imágenes). El plan free de Render duerme el servicio tras
+inactividad — la primera request después de un rato de silencio puede tardar
+unos segundos en responder mientras arranca de nuevo.
+
 ### Usuarios de ejemplo (seed)
 
 | Rol                    | Email                       | Password        |
