@@ -1,10 +1,12 @@
 import { env } from './config/env.js';
 import { createApp } from './app.js';
 import { prisma } from './lib/prisma.js';
+import { ensurePermissionsExist } from './lib/ensurePermissions.js';
 
 async function main() {
-  // Verifica conexion a la base antes de escuchar.
+  // Verifica conexión a la base antes de escuchar.
   await prisma.$connect();
+  await ensurePermissionsExist();
   const app = createApp();
   const server = app.listen(env.effectivePort, () => {
     // eslint-disable-next-line no-console
