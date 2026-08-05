@@ -1,7 +1,8 @@
-import { MapPin, Navigation, MessageSquare } from 'lucide-react';
+import { MapPin, MessageSquare } from 'lucide-react';
 import { useStoreStatus } from '../hooks/catalog';
 import { ErrorState, Spinner } from '../components/ui';
 import { usePageMeta } from '../components/Layout';
+import { formatWhatsappNumber } from '../lib/format';
 
 const DAYS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 
@@ -20,9 +21,9 @@ export default function LocationPage() {
   const loc = data.location;
   const todayDow = new Date(data.now).getDay();
   const hasCoords = loc != null && loc.latitude != null && loc.longitude != null;
-  const mapSrc = hasCoords
-    ? `https://www.openstreetmap.org/export/embed.html?bbox=${loc!.longitude! - 0.006}%2C${loc!.latitude! - 0.004}%2C${loc!.longitude! + 0.006}%2C${loc!.latitude! + 0.004}&layer=mapnik&marker=${loc!.latitude!}%2C${loc!.longitude!}`
-    : null;
+  // Embed de Google Maps sin API key (el admin solo pega el link de "Compartir";
+  // las coordenadas ya llegan resueltas desde el backend). z=16 = zoom de barrio.
+  const mapSrc = hasCoords ? `https://maps.google.com/maps?q=${loc!.latitude},${loc!.longitude}&z=16&output=embed` : null;
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
@@ -55,18 +56,13 @@ export default function LocationPage() {
               <p className="mt-1 text-sm text-txt-faint">
                 {[loc.passageNumber, loc.localeNumber].filter(Boolean).join(' · ')}
               </p>
-              <div className="mt-4 flex flex-wrap gap-3">
-                {loc.googleMapsUrl && (
+              {loc.googleMapsUrl && (
+                <div className="mt-4">
                   <a href={loc.googleMapsUrl} target="_blank" rel="noopener noreferrer" className="btn-primary inline-flex items-center gap-2">
                     <MapPin className="h-4 w-4" /> Abrir en Google Maps
                   </a>
-                )}
-                {loc.wazeUrl && (
-                  <a href={loc.wazeUrl} target="_blank" rel="noopener noreferrer" className="btn-accent inline-flex items-center gap-2">
-                    <Navigation className="h-4 w-4" /> Abrir en Waze
-                  </a>
-                )}
-              </div>
+                </div>
+              )}
             </section>
           )}
 
@@ -98,7 +94,7 @@ export default function LocationPage() {
           rel="noopener noreferrer"
           className="btn-accent mt-3 inline-flex items-center gap-2"
         >
-          <MessageSquare className="h-4 w-4" /> Escribir por WhatsApp
+          <MessageSquare className="h-4 w-4" /> Escribir por WhatsApp · {formatWhatsappNumber(data.whatsappNumber)}
         </a>
       </section>
     </div>

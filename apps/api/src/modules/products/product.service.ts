@@ -41,12 +41,15 @@ export async function listProducts(q: ListProductsQuery, opts: { includeInactive
     where.categoryId = { in: ids };
   }
 
-  // Busqueda por nombre o marca.
+  // Busqueda por nombre, marca o categoria (ej. "teclado" debe encontrar
+  // productos de la categoria "Teclados" aunque ninguno se llame literalmente
+  // asi: sin esto, solo un match exacto de texto en nombre/marca traia resultados).
   if (q.search) {
     and.push({
       OR: [
         { name: { contains: q.search, mode: 'insensitive' } },
         { brand: { contains: q.search, mode: 'insensitive' } },
+        { category: { name: { contains: q.search, mode: 'insensitive' } } },
       ],
     });
   }

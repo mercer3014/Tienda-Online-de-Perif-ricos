@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { slugSchema, uuidSchema } from './common.js';
+import { CategoryIconKey } from './enums.js';
 
 export const categoryBaseSchema = z.object({
   name: z.string().trim().min(2).max(120),
@@ -8,6 +9,8 @@ export const categoryBaseSchema = z.object({
   isPromo: z.boolean().default(false),
   promoBadgeText: z.string().trim().max(60).nullable().optional(),
   displayOrder: z.coerce.number().int().min(0).default(0),
+  /** Null = sin icono propio, el frontend cae al icono generico de respaldo. */
+  icon: CategoryIconKey.nullable().optional(),
 });
 
 export const createCategorySchema = categoryBaseSchema;
@@ -34,6 +37,7 @@ export interface CategoryNode {
   isPromo: boolean;
   promoBadgeText: string | null;
   displayOrder: number;
+  icon: CategoryIconKey | null;
   /** false = desactivada (borrado logico). El catalogo publico solo recibe activas. */
   active: boolean;
   productCount?: number;

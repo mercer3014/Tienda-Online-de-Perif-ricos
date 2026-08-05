@@ -3,7 +3,7 @@ import { Star, X, Trash2, Plus, UploadCloud } from 'lucide-react';
 import {
   createProductSchema,
   createVariantSchema,
-  type CategoryNode,
+  updateProductSchema,
   type ProductDetailDTO,
 } from '@villano/shared-types';
 import {
@@ -19,17 +19,13 @@ import { assetUrl } from '../lib/api';
 import { formatBs } from '../lib/format';
 import { toast } from '../lib/toast';
 import { confirmAction } from '../lib/confirm';
+import { flattenCategories } from '../lib/categoryTree';
 import { Field, Spinner } from '../components/ui';
 import { useDismissable } from '../lib/useDismissable';
 
-function flattenCats(nodes: CategoryNode[], depth = 0): { id: string; label: string }[] {
-  return nodes.flatMap((n) => [
-    { id: n.id, label: `${depth > 0 ? '  '.repeat(depth) + '↳ ' : ''}${n.name}` },
-    ...flattenCats(n.children, depth + 1),
-  ]);
-}
 const slugify = (s: string) =>
   s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+const skuify = (s: string) => slugify(s).toUpperCase().replace(/-/g, '');
 
 const formatBytes = (b: number) =>
   b >= 1024 * 1024 ? `${(b / 1024 / 1024).toFixed(1)} MB` : `${Math.max(1, Math.round(b / 1024))} KB`;
@@ -51,8 +47,12 @@ export function ProductFormModal({
   const { data: cats } = useAdminCategoryTree();
   const { create, update } = useProductMutations();
 
-  const [form, setForm] = useState({ categoryId: '', name: '', slug: '', description: '', brand: '', basePrice: '', originalPrice: '', status: 'activo' as 'activo' | 'inactivo' });
+  const [form, setForm] = useState({
+    categoryId: '', name: '', slug: '', description: '', brand: '', basePrice: '', originalPrice: '',
+    status: 'activo' as 'activo' | 'inactivo', initialSku: '', initialStock: '',
+  });
   const [slugTouched, setSlugTouched] = useState(false);
+  const [skuTouched, setSkuTouched] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [show, setShow] = useState(false);
 
@@ -67,13 +67,19 @@ export function ProductFormModal({
         basePrice: String(existing.basePrice),
         originalPrice: existing.originalPrice != null ? String(existing.originalPrice) : '',
         status: existing.status,
+        initialSku: '', initialStock: '',
       });
       setSlugTouched(true);
     }
   }, [existing]);
 
   const set = (k: keyof typeof form, v: string) =>
-    setForm((f) => ({ ...f, [k]: v, ...(k === 'name' && !slugTouched ? { slug: slugify(v) } : {}) }));
+    setForm((f) => ({
+      ...f,
+      [k]: v,
+      ...(k === 'name' && !slugTouched ? { slug: slugify(v) } : {}),
+      ...(k === 'name' && !skuTouched ? { initialSku: skuify(v) } : {}),
+    }));
 
   const submit = async () => {
     setError(null);
@@ -83,24 +89,29 @@ export function ProductFormModal({
       basePrice: Number(form.basePrice),
       originalPrice: form.originalPrice ? Number(form.originalPrice) : null,
       status: form.status,
+      ...(isEdit ? {} : { initialSku: form.initialSku, initialStock: Number(form.initialStock || 0) }),
     };
+    if (isEdit) {
+      const parsed = updateProductSchema.safeParse(payload);
+      if (!parsed.success) { setError(parsed.error.errors[0]?.message ?? 'Datos invalidos'); return; }
+      try {
+        await update.mutateAsync({ id: productId!, body: parsed.data });
+        toast.success('Producto actualizado');
+      } catch (e) { setError(e instanceof Error ? e.message : 'Error al guardar'); }
+      return;
+    }
     const parsed = createProductSchema.safeParse(payload);
     if (!parsed.success) { setError(parsed.error.errors[0]?.message ?? 'Datos invalidos'); return; }
     try {
-      if (isEdit) {
-        await update.mutateAsync({ id: productId!, body: parsed.data });
-        toast.success('Producto actualizado');
-      } else {
-        const created = await create.mutateAsync(parsed.data);
-        toast.success('Producto creado');
-        // Pasa a modo edicion con el id nuevo en vez de cerrar: recien ahi
-        // se pueden cargar imagenes y variantes, y el aviso de abajo lo dice.
-        onCreated(created.id);
-      }
+      const created = await create.mutateAsync(parsed.data);
+      toast.success('Producto creado');
+      // Pasa a modo edicion con el id nuevo en vez de cerrar: recien ahi
+      // se pueden cargar imagenes y variantes, y el aviso de abajo lo dice.
+      onCreated(created.id);
     } catch (e) { setError(e instanceof Error ? e.message : 'Error al guardar'); }
   };
 
-  const catOptions = cats ? flattenCats(cats) : [];
+  const catOptions = cats ? flattenCategories(cats) : [];
   const saving = create.isPending || update.isPending;
 
   return (
@@ -150,6 +161,23 @@ export function ProductFormModal({
                 <textarea className="input min-h-20" value={form.description} onChange={(e) => set('description', e.target.value)} />
               </Field>
 
+              {!isEdit && (
+                <div className="rounded-md border border-base-border p-3">
+                  <h3 className="mb-3 font-display text-sm tracking-wide text-neon-purple-bright">Variante inicial</h3>
+                  <p className="mb-3 text-xs text-txt-muted">
+                    Todo producto necesita al menos una variante vendible. Esta se crea junto con el producto, con el precio de arriba. Después podés agregar más variantes (por color, conectividad, etc.) desde la edición.
+                  </p>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <Field label="SKU">
+                      <input className="input" value={form.initialSku} onChange={(e) => { setSkuTouched(true); set('initialSku', e.target.value); }} />
+                    </Field>
+                    <Field label="Stock inicial">
+                      <input className="input" type="number" min={0} value={form.initialStock} onChange={(e) => set('initialStock', e.target.value)} placeholder="0" />
+                    </Field>
+                  </div>
+                </div>
+              )}
+
               {error && <p className="rounded bg-status-out/10 px-3 py-2 text-sm text-status-out" role="alert">{error}</p>}
 
               {isEdit && existing && (
@@ -160,7 +188,7 @@ export function ProductFormModal({
               )}
               {!isEdit && (
                 <p className="rounded-md border border-base-border bg-base-void p-3 text-xs text-txt-muted">
-                  Guardá el producto para poder agregarle imágenes y variantes.
+                  Guardá el producto para poder agregarle imágenes y más variantes.
                 </p>
               )}
             </div>

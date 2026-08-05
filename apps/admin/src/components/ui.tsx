@@ -70,12 +70,19 @@ export function Modal({ title, onClose, children, wide }: { title: string; onClo
 }
 
 const TOAST_ICON = { success: CheckCircle2, error: XCircle, info: Info } as const;
+const TOAST_CIRCLE_CLASS = {
+  success: 'bg-status-stock/12 text-status-stock',
+  error: 'bg-status-out/12 text-status-out',
+  info: 'bg-neon-purple/12 text-neon-purple-bright',
+} as const;
 
 /**
  * Caja de confirmacion centrada (no una notificacion de esquina): aparece en
- * medio de la pantalla, se nota, y se desvanece sola. No bloquea la pagina
- * (pointer-events-none en el contenedor) salvo la caja misma, que se puede
- * tocar para descartarla antes.
+ * medio de la pantalla, se nota, y se desvanece sola. Mismo lenguaje visual
+ * que ConfirmDialog (icono en circulo + texto) para que se sientan parte del
+ * mismo sistema en vez de dos estilos de aviso distintos. No bloquea la
+ * pagina (pointer-events-none en el contenedor) salvo la caja misma, que se
+ * puede tocar para descartarla antes.
  */
 export function Toaster() {
   const toasts = useToast((s) => s.toasts);
@@ -89,15 +96,12 @@ export function Toaster() {
             key={t.id}
             onClick={() => dismiss(t.id)}
             role="status"
-            className={clsx(
-              'toast-pop pointer-events-auto flex w-full max-w-sm cursor-pointer items-center gap-3 rounded-lg border bg-base-panel px-5 py-4 text-center text-sm font-medium shadow-panel',
-              t.type === 'success' && 'border-status-stock/50 text-status-stock',
-              t.type === 'error' && 'border-status-out/50 text-status-out',
-              t.type === 'info' && 'border-neon-purple/50 text-neon-purple-bright',
-            )}
+            className="toast-pop card pointer-events-auto flex w-full max-w-sm cursor-pointer items-start gap-3 p-5"
           >
-            <Icon className="h-5 w-5 shrink-0" />
-            <span className="flex-1">{t.message}</span>
+            <span className={clsx('mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full', TOAST_CIRCLE_CLASS[t.type])}>
+              <Icon className="h-5 w-5" />
+            </span>
+            <p className="min-w-0 flex-1 pt-1.5 text-sm font-medium text-txt-primary">{t.message}</p>
           </div>
         );
       })}

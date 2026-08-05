@@ -1,9 +1,9 @@
-import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ShoppingCart, X, Minus, Plus, MessageSquare, Trash2 } from 'lucide-react';
 import { useCart } from '../store/cart';
 import { useCreateOrder, markWhatsappSent, trackEvent } from '../hooks/catalog';
 import { formatBs } from '../lib/format';
+import { toast } from '../lib/toast';
 import { ProductImg, Spinner } from './ui';
 import { useDismissable } from '../lib/useDismissable';
 
@@ -11,11 +11,9 @@ export function CartDrawer() {
   const { items, isOpen, close, removeItem, setQuantity, clear, total } = useCart();
   // Escape cierra el carrito y se bloquea el scroll del fondo mientras esta abierto.
   useDismissable(isOpen, close);
-  const [error, setError] = useState<string | null>(null);
   const createOrder = useCreateOrder();
 
   const finalize = async () => {
-    setError(null);
     try {
       const payload = {
         deliveryMethod: 'retiro' as const,
@@ -29,7 +27,7 @@ export function CartDrawer() {
       clear();
       close();
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'No se pudo generar el pedido. Intenta nuevamente.');
+      toast.error(e instanceof Error ? e.message : 'No se pudo generar el pedido. Intenta nuevamente.');
     }
   };
 
@@ -101,11 +99,6 @@ export function CartDrawer() {
                 <span className="font-display text-xl font-bold text-neon-green">{formatBs(total())}</span>
               </div>
 
-              {error && (
-                <p className="mb-2 rounded bg-status-out/10 px-3 py-2 text-sm text-status-out" role="alert">
-                  {error}
-                </p>
-              )}
               <button
                 onClick={finalize}
                 disabled={createOrder.isPending}

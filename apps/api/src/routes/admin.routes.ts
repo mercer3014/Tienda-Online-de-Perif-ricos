@@ -16,6 +16,7 @@ import {
   updateOrderStatusSchema,
   updateProductSchema,
   updateRolePermissionsSchema,
+  updateStoreSettingsSchema,
   updateUserSchema,
   updateVariantSchema,
   uuidSchema,
@@ -36,6 +37,7 @@ import { listRolesWithMatrix, listPermissions, updateRolePermissions } from '../
 import { createUser, deactivateUser, listUsers, updateUser } from '../modules/users/user.service.js';
 import { getMetricsSummary } from '../modules/metrics/metrics.service.js';
 import { listAudit, listAuditForExport } from '../modules/audit/audit.service.js';
+import { getStoreSettings, updateStoreSettings } from '../modules/store/store.service.js';
 import {
   createAttribute,
   createAttributeValue,
@@ -446,5 +448,22 @@ adminRouter.get(
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', 'attachment; filename="auditoria.csv"');
     res.send(csv);
+  }),
+);
+
+// ------------------------------ Configuracion -------------------------------
+adminRouter.get(
+  '/store-settings',
+  requirePermission('gestionar_configuracion'),
+  asyncHandler(async (_req, res) => ok(res, await getStoreSettings())),
+);
+
+adminRouter.patch(
+  '/store-settings',
+  requirePermission('gestionar_configuracion'),
+  validate({ body: updateStoreSettingsSchema }),
+  asyncHandler(async (req, res) => {
+    const updated = await updateStoreSettings(req.body, getAuth(req).userId);
+    ok(res, updated);
   }),
 );

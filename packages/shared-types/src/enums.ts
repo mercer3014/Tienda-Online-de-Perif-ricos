@@ -56,8 +56,42 @@ export const PermissionKey = z.enum([
   'ver_auditoria',
   'gestionar_usuarios',
   'gestionar_roles',
+  'gestionar_configuracion',
 ]);
 export type PermissionKey = z.infer<typeof PermissionKey>;
+
+/**
+ * Paleta fija de iconos elegibles para una categoria desde el admin (crear o
+ * editar categoria, cualquier nivel del arbol). Es una lista controlada (no
+ * texto libre / URL / SVG arbitrario) para no depender de que el nombre o
+ * slug "adivine" el icono correcto -asi una categoria borrada y vuelta a
+ * crear, o una completamente nueva, siempre puede elegir su propio icono-.
+ * Cada frontend (web/admin) mapea estas claves a su propio componente de
+ * icono (lucide-react); agregar una clave nueva aca las habilita en ambos.
+ */
+export const CategoryIconKey = z.enum([
+  'keyboard',
+  'mouse',
+  'headphones',
+  'speaker',
+  'mic',
+  'webcam',
+  'monitor',
+  'cpu',
+  'memory',
+  'circuit-board',
+  'hard-drive',
+  'fan',
+  'cable',
+  'usb',
+  'router',
+  'gamepad',
+  'joystick',
+  'chair',
+  'package',
+  'layout-grid',
+]);
+export type CategoryIconKey = z.infer<typeof CategoryIconKey>;
 
 /** Umbrales de stock (fuente unica de verdad, compartida). */
 export const STOCK_THRESHOLD_LOW = 5;

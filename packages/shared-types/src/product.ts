@@ -45,10 +45,18 @@ const productBaseSchema = z.object({
 const priceOrderRefinement = (data: { basePrice?: number; originalPrice?: number | null }) =>
   data.originalPrice == null || data.basePrice == null || data.originalPrice > data.basePrice;
 
-export const createProductSchema = productBaseSchema.refine(priceOrderRefinement, {
-  message: 'El precio de oferta (antes) debe ser mayor al precio actual',
-  path: ['originalPrice'],
-});
+// Al crear, el producto nace con su primera variante (SKU + stock inicial):
+// sin esto, un producto recien creado queda sin ninguna variante vendible y
+// se muestra como agotado en el catalogo hasta que alguien vuelve a editarlo.
+export const createProductSchema = productBaseSchema
+  .extend({
+    initialSku: z.string().trim().min(1).max(64),
+    initialStock: z.coerce.number().int().min(0).max(1_000_000),
+  })
+  .refine(priceOrderRefinement, {
+    message: 'El precio de oferta (antes) debe ser mayor al precio actual',
+    path: ['originalPrice'],
+  });
 
 export const updateProductSchema = productBaseSchema.partial().refine(priceOrderRefinement, {
   message: 'El precio de oferta (antes) debe ser mayor al precio actual',

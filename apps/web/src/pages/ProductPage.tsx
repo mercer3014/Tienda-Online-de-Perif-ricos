@@ -194,9 +194,11 @@ export default function ProductPage() {
           >
             {added ? <><Check className="h-5 w-5" /> Agregado</> : canAdd ? <><ShoppingCart className="h-5 w-5" /> Agregar al carrito</> : 'Agotado'}
           </button>
-          {activeVariant && activeVariant.stockQuantity > 0 && activeVariant.stockQuantity < 5 && (
-            <p className="mt-2 text-sm text-status-low">
-              ¡Solo quedan {activeVariant.stockQuantity} unidades!
+          {activeVariant && activeVariant.stockQuantity > 0 && (
+            <p className={`mt-2 text-sm ${activeVariant.stockQuantity < 5 ? 'font-semibold text-status-low' : 'text-txt-faint'}`}>
+              {activeVariant.stockQuantity < 5
+                ? `¡Solo quedan ${activeVariant.stockQuantity} unidades!`
+                : `${activeVariant.stockQuantity} unidades disponibles`}
             </p>
           )}
         </div>

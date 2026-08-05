@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter, Link, Route, Routes } from 'react-router-dom';
 import { Layout } from './components/Layout';
+import { Toaster } from './components/ui';
 import HomePage from './pages/HomePage';
 import CatalogPage from './pages/CatalogPage';
 import ProductPage from './pages/ProductPage';
@@ -39,6 +40,7 @@ export default function App() {
           </Routes>
         </Layout>
       </BrowserRouter>
+      <Toaster />
     </QueryClientProvider>
   );
 }

@@ -1,4 +1,3 @@
-import { env } from '../config/env.js';
 import { formatBs } from './money.js';
 
 interface WaItem {
@@ -39,7 +38,9 @@ export function buildWhatsappText(params: {
   return lines.join('\n');
 }
 
-export function buildWhatsappUrl(text: string): string {
-  const number = env.STORE_WHATSAPP_NUMBER.replace(/\D/g, '');
+/** El numero lo resuelve el caller (getEffectiveWhatsappNumber): DB configurada
+ * desde el panel, con el .env como respaldo. */
+export function buildWhatsappUrl(text: string, whatsappNumber: string): string {
+  const number = whatsappNumber.replace(/\D/g, '');
   return `https://wa.me/${number}?text=${encodeURIComponent(text)}`;
 }

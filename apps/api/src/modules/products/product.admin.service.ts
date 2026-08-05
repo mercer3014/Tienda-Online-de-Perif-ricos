@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import type { CreateProductInput, UpdateProductInput } from '@villano/shared-types';
 import { prisma } from '../../lib/prisma.js';
 import { badRequest, conflict, notFound } from '../../lib/errors.js';
@@ -33,27 +34,54 @@ export async function adminListProducts(params: { search?: string; page: number;
   return { items: rows.map(toDetail), total };
 }
 
+/**
+ * Crea el producto Y su primera variante en la misma transaccion: un producto
+ * recien creado sin ninguna variante queda "agotado" en el catalogo hasta que
+ * alguien vuelve a entrar a editarlo, lo cual confunde (parece un bug de
+ * stock). Con esto, el producto nace vendible con el precio/SKU/stock que
+ * se cargaron en el propio formulario de alta.
+ */
 export async function createProduct(input: CreateProductInput, userId: string) {
   await ensureCategory(input.categoryId);
-  const product = await prisma.product.create({
-    data: {
-      categoryId: input.categoryId,
-      name: input.name,
-      slug: input.slug,
-      description: input.description ?? '',
-      brand: input.brand ?? null,
-      basePrice: input.basePrice,
-      originalPrice: input.originalPrice ?? null,
-      status: input.status ?? 'activo',
-    },
-    include: productInclude,
-  });
+
+  let product;
+  try {
+    product = await prisma.$transaction(async (tx) => {
+      const created = await tx.product.create({
+        data: {
+          categoryId: input.categoryId,
+          name: input.name,
+          slug: input.slug,
+          description: input.description ?? '',
+          brand: input.brand ?? null,
+          basePrice: input.basePrice,
+          originalPrice: input.originalPrice ?? null,
+          status: input.status ?? 'activo',
+        },
+      });
+      await tx.productVariant.create({
+        data: {
+          productId: created.id,
+          sku: input.initialSku,
+          price: input.basePrice,
+          stockQuantity: input.initialStock,
+        },
+      });
+      return tx.product.findUniqueOrThrow({ where: { id: created.id }, include: productInclude });
+    });
+  } catch (err) {
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+      throw conflict('Ya existe una variante con ese SKU. Cambialo e intenta de nuevo.');
+    }
+    throw err;
+  }
+
   await writeAudit({
     userId,
     action: 'crear_producto',
     entityType: 'product',
     entityId: product.id,
-    newValue: { name: product.name, slug: product.slug, basePrice: toNumber(product.basePrice) },
+    newValue: { name: product.name, slug: product.slug, basePrice: toNumber(product.basePrice), initialStock: input.initialStock },
   });
   return toDetail(product);
 }

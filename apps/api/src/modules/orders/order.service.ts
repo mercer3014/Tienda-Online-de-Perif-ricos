@@ -11,6 +11,7 @@ import { badRequest, conflict, notFound } from '../../lib/errors.js';
 import { writeAudit } from '../../lib/audit.js';
 import { toNumber } from '../../lib/money.js';
 import { buildWhatsappText, buildWhatsappUrl } from '../../lib/whatsapp.js';
+import { getEffectiveWhatsappNumber } from '../store/store.service.js';
 
 function genOrderNumber(): string {
   const d = new Date();
@@ -129,7 +130,7 @@ export async function createOrder(input: CreateOrderInput): Promise<CreatedOrder
     customerName: input.customerName,
     customerPhone: input.customerPhone,
   });
-  const whatsappUrl = buildWhatsappUrl(whatsappText);
+  const whatsappUrl = buildWhatsappUrl(whatsappText, await getEffectiveWhatsappNumber());
 
   return { order: serializeOrder(order), whatsappUrl, whatsappText };
 }

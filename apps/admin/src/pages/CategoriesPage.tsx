@@ -1,6 +1,7 @@
 import { useState } from 'react';
+import clsx from 'clsx';
 import { Check, X, Pencil, Trash2, Eye, EyeOff } from 'lucide-react';
-import type { CategoryNode } from '@villano/shared-types';
+import type { CategoryIconKey, CategoryNode } from '@villano/shared-types';
 import { createCategorySchema } from '@villano/shared-types';
 import { useAdminCategoryTree, useCategoryMutations } from '../hooks/admin';
 import { useAuth } from '../store/auth';
@@ -8,6 +9,7 @@ import { toast } from '../lib/toast';
 import { ActionIcon, ErrorState, Field, PageLoader, Spinner } from '../components/shared';
 import { confirmAction } from '../lib/confirm';
 import { MSG_DATOS_INVALIDOS } from '../lib/format';
+import { CATEGORY_ICON_OPTIONS, getCategoryIconComponent } from '../lib/categoryIcons';
 
 const slugify = (s: string) =>
   s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
@@ -23,7 +25,7 @@ export default function CategoriesPage() {
   const { can } = useAuth();
   const { data: tree, isLoading, isError, refetch } = useAdminCategoryTree();
   const { create } = useCategoryMutations();
-  const [form, setForm] = useState({ name: '', slug: '', parentId: '', isPromo: false, promoBadgeText: '' });
+  const [form, setForm] = useState({ name: '', slug: '', parentId: '', isPromo: false, promoBadgeText: '', icon: 'layout-grid' });
   const [err, setErr] = useState<string | null>(null);
 
   if (isError) return <ErrorState message="No se pudieron cargar las categorías." onRetry={() => refetch()} />;
@@ -35,19 +37,22 @@ export default function CategoriesPage() {
       name: form.name, slug: form.slug || slugify(form.name),
       parentId: form.parentId || undefined, isPromo: form.isPromo,
       promoBadgeText: form.isPromo ? form.promoBadgeText || 'PROMO' : undefined,
-      displayOrder: 0,
+      displayOrder: 0, icon: form.icon,
     };
     const parsed = createCategorySchema.safeParse(payload);
     if (!parsed.success) { setErr(parsed.error.errors[0]?.message ?? MSG_DATOS_INVALIDOS); return; }
-    try { await create.mutateAsync(parsed.data); toast.success('Categoría creada'); setForm({ name: '', slug: '', parentId: '', isPromo: false, promoBadgeText: '' }); }
-    catch (e) { setErr(e instanceof Error ? e.message : 'Error'); }
+    try {
+      await create.mutateAsync(parsed.data);
+      toast.success('Categoría creada');
+      setForm({ name: '', slug: '', parentId: '', isPromo: false, promoBadgeText: '', icon: 'layout-grid' });
+    } catch (e) { setErr(e instanceof Error ? e.message : 'Error'); }
   };
 
   return (
-    <div className="grid gap-6 lg:grid-cols-3">
-      <div className="lg:col-span-2">
+    <div className="grid min-w-0 gap-6 lg:grid-cols-3">
+      <div className="min-w-0 lg:col-span-2">
         <h1 className="mb-4 font-display text-2xl tracking-wide text-txt-primary">Categorías</h1>
-        <div className="card p-4">
+        <div className="card min-w-0 overflow-hidden p-4">
           {tree.length === 0 ? <p className="text-txt-muted">No hay categorías.</p> : (
             <ul className="space-y-1">{tree.map((n) => <CategoryRow key={n.id} node={n} allNodes={tree} depth={0} />)}</ul>
           )}
@@ -55,15 +60,20 @@ export default function CategoriesPage() {
       </div>
 
       {(can('crear_categoria')) && (
-        <div>
+        <div className="min-w-0">
           <h2 className="mb-4 font-display text-lg uppercase tracking-wide text-neon-purple-bright">Nueva categoría</h2>
-          <div className="card space-y-3 p-4">
+          <div className="card min-w-0 space-y-3 p-4">
             <Field label="Nombre"><input className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value, slug: slugify(e.target.value) })} /></Field>
             <Field label="Slug"><input className="input" value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} /></Field>
             <Field label="Categoría padre (opcional)">
               <select className="input" value={form.parentId} onChange={(e) => setForm({ ...form, parentId: e.target.value })}>
                 <option value="">Sin categoría padre (raíz)</option>
                 {flatten(tree).map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
+              </select>
+            </Field>
+            <Field label="Icono" hint="Se muestra en las tarjetas de categoría del sitio público">
+              <select className="input" value={form.icon} onChange={(e) => setForm({ ...form, icon: e.target.value })}>
+                {CATEGORY_ICON_OPTIONS.map((o) => <option key={o.key} value={o.key}>{o.label}</option>)}
               </select>
             </Field>
             <label className="flex items-center gap-2 text-sm text-txt-muted">
@@ -107,6 +117,12 @@ function CategoryRow({ node, allNodes, depth }: { node: CategoryNode; allNodes: 
       onSuccess: () => toast.success('Actualizada'),
     });
 
+  const changeIcon = (icon: CategoryIconKey) =>
+    update.mutate({ id: node.id, body: { icon } }, {
+      onSuccess: () => toast.success('Icono actualizado'),
+      onError: (e) => toast.error(e instanceof Error ? e.message : 'Error'),
+    });
+
   const hide = async () => {
     const ok = await confirmAction({
       title: `¿Ocultar "${node.name}" del catálogo público?`,
@@ -145,50 +161,88 @@ function CategoryRow({ node, allNodes, depth }: { node: CategoryNode; allNodes: 
 
   const parentOptions = flatten(allNodes).filter((c) => c.id !== node.id);
 
+  const showControls = node.active && (can('editar_categoria') || can('modificar_categoria'));
+
   return (
     <li>
-      <div className="flex flex-wrap items-center gap-2 rounded px-2 py-1.5 hover:bg-base-panel/50" style={{ marginLeft: depth * 16 }}>
+      <div className="min-w-0 rounded px-2 py-1.5 hover:bg-base-panel/50" style={{ marginLeft: depth * 16 }}>
         {editing ? (
-          <>
+          <div className="flex flex-wrap items-center gap-2">
             <input className="input w-48 py-1" value={name} onChange={(e) => setName(e.target.value)} autoFocus />
             <button className="text-neon-green" onClick={rename} aria-label="Guardar"><Check className="h-4 w-4" /></button>
             <button className="text-txt-faint" onClick={() => { setEditing(false); setName(node.name); }} aria-label="Cancelar"><X className="h-4 w-4" /></button>
-          </>
+          </div>
         ) : (
           <>
-            <span className={`font-medium ${node.active ? 'text-txt-primary' : 'text-txt-faint line-through'}`}>{node.name}</span>
-            {node.isPromo && <span className="rounded-full bg-neon-green/15 px-2 text-xs text-neon-green">{node.promoBadgeText ?? 'PROMO'}</span>}
-            <span
-              className={node.active ? 'badge badge-success' : 'badge badge-danger'}
-              title={node.active ? 'Visible: los clientes la ven en el catálogo público' : 'Oculta: no aparece en el catálogo público, pero sigue guardada en el sistema'}
-            >
-              {node.active ? 'Visible' : 'Oculta'}
-            </span>
-            <span className="text-xs text-txt-faint">{node.productCount ?? 0} prod.</span>
-            <div className="ml-auto flex items-center gap-2 text-xs">
-              {node.active && (
-                <>
-                  {can('editar_categoria') && <ActionIcon icon={Pencil} label="Renombrar categoría" onClick={() => setEditing(true)} />}
-                  {can('editar_categoria') && <button className="rounded px-2 py-1 text-xs text-txt-muted hover:bg-base-panel hover:text-txt-primary" onClick={togglePromo}>{node.isPromo ? 'Quitar promo' : 'Promo'}</button>}
-                  {can('modificar_categoria') && (
-                    <select className="rounded border border-base-border bg-base-void px-1 py-0.5 text-xs" value={node.parentId ?? ''} onChange={(e) => reparent(e.target.value)} aria-label="Mover a">
+            {/* Fila principal: siempre compacta, solo iconos de accion (nada que pueda forzar overflow). */}
+            <div className="flex min-w-0 flex-wrap items-center gap-2">
+              {(() => {
+                const Icon = getCategoryIconComponent(node.icon);
+                return <Icon className="h-4 w-4 shrink-0 text-neon-purple-bright" />;
+              })()}
+              <span className={`min-w-0 truncate font-medium ${node.active ? 'text-txt-primary' : 'text-txt-faint line-through'}`}>{node.name}</span>
+              {node.isPromo && <span className="shrink-0 rounded-full bg-neon-green/15 px-2 text-xs text-neon-green">{node.promoBadgeText ?? 'PROMO'}</span>}
+              <span
+                className={clsx('shrink-0', node.active ? 'badge badge-success' : 'badge badge-danger')}
+                title={node.active ? 'Visible: los clientes la ven en el catálogo público' : 'Oculta: no aparece en el catálogo público, pero sigue guardada en el sistema'}
+              >
+                {node.active ? 'Visible' : 'Oculta'}
+              </span>
+              <span className="shrink-0 text-xs text-txt-faint">{node.productCount ?? 0} prod.</span>
+              <div className="ml-auto flex shrink-0 items-center gap-1">
+                {node.active && can('editar_categoria') && <ActionIcon icon={Pencil} label="Renombrar categoría" onClick={() => setEditing(true)} />}
+                {can('eliminar_categoria') && (
+                  node.active ? (
+                    <ActionIcon icon={EyeOff} label="Ocultar del catálogo público" disabled={remove.isPending} onClick={hide} />
+                  ) : (
+                    <ActionIcon icon={Eye} label="Mostrar en el catálogo público" disabled={update.isPending} onClick={show} />
+                  )
+                )}
+                {can('eliminar_categoria') && (
+                  <ActionIcon icon={Trash2} label="Eliminar para siempre" danger disabled={removePermanent.isPending} onClick={delPermanent} />
+                )}
+              </div>
+            </div>
+
+            {/* Segunda fila: controles "pesados" (selects) en su propia linea, libres
+                de wrappear en mobile sin arrastrar overflow horizontal a toda la pagina. */}
+            {showControls && (
+              <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1.5 pl-6 text-xs text-txt-muted">
+                {can('editar_categoria') && (
+                  <label className="flex min-w-0 items-center gap-1.5">
+                    Icono
+                    <select
+                      className="min-w-0 max-w-[8.5rem] truncate rounded border border-base-border bg-base-void px-1 py-0.5 text-xs"
+                      value={node.icon ?? 'layout-grid'}
+                      onChange={(e) => changeIcon(e.target.value as CategoryIconKey)}
+                      aria-label="Cambiar icono"
+                      title="Icono en el sitio público"
+                    >
+                      {CATEGORY_ICON_OPTIONS.map((o) => <option key={o.key} value={o.key}>{o.label}</option>)}
+                    </select>
+                  </label>
+                )}
+                {can('editar_categoria') && (
+                  <button className="shrink-0 rounded px-2 py-1 text-txt-muted hover:bg-base-panel hover:text-txt-primary" onClick={togglePromo}>
+                    {node.isPromo ? 'Quitar promo' : '+ Promo'}
+                  </button>
+                )}
+                {can('modificar_categoria') && (
+                  <label className="flex min-w-0 items-center gap-1.5">
+                    Mover a
+                    <select
+                      className="min-w-0 max-w-[9rem] truncate rounded border border-base-border bg-base-void px-1 py-0.5 text-xs"
+                      value={node.parentId ?? ''}
+                      onChange={(e) => reparent(e.target.value)}
+                      aria-label="Mover a"
+                    >
                       <option value="">Raíz</option>
                       {parentOptions.map((c) => <option key={c.id} value={c.id}>{c.label.trim()}</option>)}
                     </select>
-                  )}
-                </>
-              )}
-              {can('eliminar_categoria') && (
-                node.active ? (
-                  <ActionIcon icon={EyeOff} label="Ocultar del catálogo público" disabled={remove.isPending} onClick={hide} />
-                ) : (
-                  <ActionIcon icon={Eye} label="Mostrar en el catálogo público" disabled={update.isPending} onClick={show} />
-                )
-              )}
-              {can('eliminar_categoria') && (
-                <ActionIcon icon={Trash2} label="Eliminar para siempre" danger disabled={removePermanent.isPending} onClick={delPermanent} />
-              )}
-            </div>
+                  </label>
+                )}
+              </div>
+            )}
           </>
         )}
       </div>

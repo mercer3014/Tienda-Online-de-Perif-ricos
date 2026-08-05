@@ -15,6 +15,7 @@ import {
   Menu,
   ChevronsLeft,
   ChevronsRight,
+  Settings,
 } from 'lucide-react';
 import type { PermissionKey } from '@villano/shared-types';
 import { useAuth } from '../store/auth';
@@ -38,6 +39,7 @@ const NAV: NavItem[] = [
   { to: '/auditoria', label: 'Auditoría', icon: ClipboardList, anyOf: ['ver_auditoria'] },
   { to: '/roles', label: 'Roles y permisos', icon: ShieldCheck, anyOf: ['gestionar_roles'] },
   { to: '/usuarios', label: 'Usuarios', icon: Users, anyOf: ['gestionar_usuarios'] },
+  { to: '/configuracion', label: 'Configuración', icon: Settings, anyOf: ['gestionar_configuracion'] },
 ];
 
 const STORAGE_KEY = 'villano_admin_sidebar';
@@ -56,9 +58,9 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
 
   const handleLogout = async () => {
     const ok = await confirmAction({
-      title: '¿Cerrar sesión?',
+      title: '¿Salir?',
       description: 'Vas a salir del panel administrativo.',
-      confirmLabel: 'Cerrar sesión',
+      confirmLabel: 'Salir',
       danger: true,
     });
     if (ok) {
@@ -78,12 +80,12 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
       )}
       <button
         onClick={handleLogout}
-        title="Cerrar sesión"
-        aria-label="Cerrar sesión"
-        className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium text-status-out transition-all duration-200 hover:-translate-y-0.5 hover:bg-status-out/10 hover:shadow-panel"
+        title="Salir"
+        aria-label="Salir"
+        className="inline-flex items-center gap-1.5 rounded-md border border-status-out/30 bg-status-out/5 px-2.5 py-1.5 text-sm font-medium text-status-out shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-status-out/10 hover:shadow-panel"
       >
         <LogOut className="h-4 w-4 shrink-0" />
-        <span className="hidden sm:inline">Cerrar sesión</span>
+        <span className="hidden sm:inline">Salir</span>
       </button>
     </div>
   );
@@ -136,11 +138,6 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
           );
         })}
       </nav>
-
-      {/* Footer anclado abajo del sidebar: solo el toggle de tema (cuenta y logout viven arriba a la derecha) */}
-      <div className="mt-2 border-t border-base-border p-2">
-        <ThemeToggle className={mini ? 'w-full justify-center' : 'w-full justify-start'} />
-      </div>
     </div>
   );
 
@@ -181,8 +178,9 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
           </div>
         </header>
 
-        {/* Barra superior desktop: cuenta (nombre/rol) + cerrar sesion */}
-        <div className="sticky top-0 z-30 hidden items-center justify-end border-b border-base-border bg-base-panel/60 px-6 py-2.5 backdrop-blur lg:flex">
+        {/* Barra superior desktop: tema + cuenta (nombre/rol) + cerrar sesion */}
+        <div className="sticky top-0 z-30 hidden items-center justify-end gap-3 border-b border-base-border bg-base-panel/60 px-6 py-2.5 backdrop-blur lg:flex">
+          <ThemeToggle />
           <AccountArea />
         </div>
 

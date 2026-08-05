@@ -52,6 +52,11 @@ model Category {
   isPromo        Boolean    @default(false) @map("is_promo")
   promoBadgeText String?    @map("promo_badge_text") @db.VarChar(60)
   displayOrder   Int        @default(0) @map("display_order")
+  // Clave de icono elegida desde el admin (ver CategoryIconKey en shared-types).
+  // String libre (no enum de Postgres) para poder ampliar la paleta de iconos
+  // sin migracion; se valida contra la lista permitida en la capa de Zod.
+  // Null = usa el icono generico de respaldo en el frontend.
+  icon           String?    @db.VarChar(40)
   // Borrado logico: no se elimina fisicamente para no romper productos/pedidos.
   active         Boolean    @default(true)
   createdAt      DateTime   @default(now()) @map("created_at")
@@ -310,10 +315,18 @@ model StoreLocation {
   address       String  @db.VarChar(240)
   passageNumber String? @map("passage_number") @db.VarChar(30)
   localeNumber  String? @map("locale_number") @db.VarChar(30)
+  // Resueltas automaticamente por el backend a partir de googleMapsUrl (ver
+  // resolveGoogleMapsCoords); el admin nunca las escribe a mano.
   latitude      Float?
   longitude     Float?
   googleMapsUrl String? @map("google_maps_url") @db.VarChar(500)
-  wazeUrl       String? @map("waze_url") @db.VarChar(500)
+  // Numero de WhatsApp del negocio, editable desde el panel admin. Si es
+  // null, se usa STORE_WHATSAPP_NUMBER del .env como respaldo (ver
+  // store.service.ts). Formato internacional sin "+", solo digitos.
+  whatsappNumber String? @map("whatsapp_number") @db.VarChar(20)
+  // Anuncio corto opcional que se muestra en el sitio publico (ej. "Cerrado
+  // por feriado", "Envios gratis esta semana"). Null = no se muestra nada.
+  announcement   String? @db.VarChar(280)
 
   @@map("store_location")
 }

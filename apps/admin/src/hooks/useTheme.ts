@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useLayoutEffect, useState } from 'react';
 
 export type Theme = 'dark' | 'light';
 
@@ -9,7 +9,10 @@ export function useTheme() {
     return 'light';
   });
 
-  useEffect(() => {
+  // useLayoutEffect (no useEffect): debe aplicar la clase de forma sincronica
+  // dentro del mismo flushSync que dispara ThemeToggle, para que la captura
+  // "after" de la View Transition (animacion de gota de agua) sea correcta.
+  useLayoutEffect(() => {
     const root = document.documentElement;
     const body = document.body;
     if (theme === 'light') {

@@ -15,8 +15,10 @@ import type {
   Paginated,
   ProductDetailDTO,
   QuickUpdateVariantInput,
+  StoreSettingsDTO,
   UpdateProductInput,
   UpdateRolePermissionsInput,
+  UpdateStoreSettingsInput,
   UpdateUserInput,
 } from '@villano/shared-types';
 import { apiFetch, apiUpload } from '../lib/api';
@@ -230,3 +232,16 @@ export const useMetrics = () => useQuery({ queryKey: ['admin-metrics'], queryFn:
 // -------------------------------- Auditoria --------------------------------
 export const useAudit = (query: string) =>
   useQuery({ queryKey: ['admin-audit', query], queryFn: () => apiFetch<Paginated<AuditItem>>(`/admin/audit?${query}`) });
+
+// ------------------------------ Configuracion -------------------------------
+export const useStoreSettings = () =>
+  useQuery({ queryKey: ['admin-store-settings'], queryFn: () => apiFetch<StoreSettingsDTO>('/admin/store-settings') });
+
+export function useUpdateStoreSettings() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: UpdateStoreSettingsInput) =>
+      apiFetch<StoreSettingsDTO>('/admin/store-settings', { method: 'PATCH', body }),
+    onSuccess: (data) => qc.setQueryData(['admin-store-settings'], data),
+  });
+}

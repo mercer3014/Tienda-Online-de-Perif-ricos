@@ -1,6 +1,6 @@
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useRef, useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useAttributes, useProducts, useCategoryTree } from '../hooks/catalog';
 import { ProductCard, ProductCardSkeleton } from '../components/ProductCard';
 import { EmptyState, ErrorState, Spinner } from '../components/ui';
@@ -53,6 +53,32 @@ export default function CatalogPage() {
     next.set('page', '1');
     setParams(next);
   };
+
+  // Buscador propio de esta pagina: actualiza la grilla de resultados letra
+  // por letra (debounced), sin esperar a que se confirme con Enter. Guarda
+  // el ultimo valor que ESTE input escribio en la URL para distinguirlo de un
+  // cambio externo (ej. "Limpiar filtros" o el buscador del header) y asi no
+  // pelearse con el cursor mientras el usuario todavia esta escribiendo.
+  const [searchInput, setSearchInput] = useState(search);
+  const lastPushedSearch = useRef(search);
+
+  useEffect(() => {
+    if (search !== lastPushedSearch.current) {
+      setSearchInput(search);
+      lastPushedSearch.current = search;
+    }
+  }, [search]);
+
+  useEffect(() => {
+    const trimmed = searchInput.trim();
+    if (trimmed === search) return;
+    const t = setTimeout(() => {
+      lastPushedSearch.current = trimmed;
+      update((p) => (trimmed ? p.set('search', trimmed) : p.delete('search')));
+    }, 350);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchInput]);
 
   // Navegacion de paginas: cambia SOLO el numero de pagina (sin resetear filtros ni volver a 1).
   const goToPage = (target: number) => {
@@ -179,6 +205,18 @@ export default function CatalogPage() {
             <option value="nombre">Nombre A-Z</option>
           </select>
         </div>
+      </div>
+
+      <div className="relative mb-3 max-w-md">
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-txt-faint" />
+        <input
+          type="search"
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
+          placeholder="Buscar en el catálogo…"
+          aria-label="Buscar en el catálogo"
+          className="w-full rounded-md border border-base-border bg-base-void py-2 pl-9 pr-3 text-sm text-txt-primary placeholder:text-txt-faint focus:border-neon-purple"
+        />
       </div>
 
       {!isLoading && data && (

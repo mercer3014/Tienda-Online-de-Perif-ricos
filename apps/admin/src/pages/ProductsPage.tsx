@@ -1,11 +1,12 @@
 import { useMemo, useRef, useState } from 'react';
 import { ArrowUpDown, ArrowUp, ArrowDown, Pencil, Trash2, Search, Plus, Eye, EyeOff } from 'lucide-react';
 import type { ProductDetailDTO, StockStatus } from '@villano/shared-types';
-import { useAdminProducts, useProductMutations } from '../hooks/admin';
+import { useAdminProducts, useAdminCategoryTree, useProductMutations } from '../hooks/admin';
 import { useAuth } from '../store/auth';
 import { formatBs } from '../lib/format';
 import { toast } from '../lib/toast';
 import { confirmAction } from '../lib/confirm';
+import { flattenCategories, collectIdsWithDescendants } from '../lib/categoryTree';
 import { ActionIcon, EmptyState, ErrorState, PageLoader, StockPill, Thumb } from '../components/shared';
 import { ProductFormModal } from './ProductFormModal';
 
@@ -23,11 +24,17 @@ export default function ProductsPage() {
   const searchBoxRef = useRef<HTMLDivElement>(null);
 
   const { data, isLoading, isError, refetch } = useAdminProducts('page=1&pageSize=200');
+  const { data: categoryTree } = useAdminCategoryTree();
   const { remove, removePermanent, update } = useProductMutations();
 
-  const categories = useMemo(
-    () => Array.from(new Set((data?.items ?? []).map((p) => p.categoryName))).sort(),
-    [data],
+  // Todos los niveles del arbol (padres incluidos), no solo las categorias
+  // hoja a las que efectivamente se asignan productos.
+  const categoryOptions = useMemo(() => (categoryTree ? flattenCategories(categoryTree) : []), [categoryTree]);
+  // Filtrar por un padre debe traer tambien los productos de sus descendientes,
+  // sin importar la profundidad del arbol (escalable a cualquier estructura).
+  const categoryFilterIds = useMemo(
+    () => (category && categoryTree ? collectIdsWithDescendants(categoryTree, category) : null),
+    [category, categoryTree],
   );
 
   const bySearch = (p: ProductDetailDTO) => {
@@ -44,7 +51,7 @@ export default function ProductsPage() {
 
   const rows = useMemo(() => {
     let items = (data?.items ?? []).filter(bySearch);
-    if (category) items = items.filter((p) => p.categoryName === category);
+    if (categoryFilterIds) items = items.filter((p) => categoryFilterIds.has(p.categoryId));
     if (status) items = items.filter((p) => p.status === status);
     return [...items].sort((a, b) => {
       const dir = sort.dir;
@@ -58,7 +65,7 @@ export default function ProductsPage() {
         default: return 0;
       }
     });
-  }, [data, search, category, status, sort]);
+  }, [data, search, categoryFilterIds, status, sort]);
 
   const toggleSort = (key: SortKey) =>
     setSort((s) => (s.key === key ? { key, dir: (s.dir * -1) as 1 | -1 } : { key, dir: 1 }));
@@ -154,7 +161,7 @@ export default function ProductsPage() {
         </div>
         <select className="input" value={category} onChange={(e) => setCategory(e.target.value)}>
           <option value="">Todas las categorías</option>
-          {categories.map((c) => <option key={c} value={c}>{c}</option>)}
+          {categoryOptions.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
         </select>
         <select className="input" value={status} onChange={(e) => setStatus(e.target.value)}>
           <option value="">Cualquier visibilidad</option>

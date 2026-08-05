@@ -7,6 +7,7 @@ import { writeAudit } from '../../lib/audit.js';
 type Row = {
   id: string; parentId: string | null; name: string; slug: string;
   isPromo: boolean; promoBadgeText: string | null; displayOrder: number; active: boolean;
+  icon: string | null;
 };
 
 function buildTree(rows: Row[], counts: Map<string, number>): CategoryNode[] {
@@ -15,6 +16,7 @@ function buildTree(rows: Row[], counts: Map<string, number>): CategoryNode[] {
     byId.set(r.id, {
       id: r.id, name: r.name, slug: r.slug, parentId: r.parentId,
       isPromo: r.isPromo, promoBadgeText: r.promoBadgeText, displayOrder: r.displayOrder,
+      icon: r.icon as CategoryNode['icon'],
       active: r.active, productCount: counts.get(r.id) ?? 0, children: [],
     }),
   );
@@ -116,7 +118,7 @@ export async function createCategory(input: CreateCategoryInput, userId: string)
     data: {
       name: input.name, slug: input.slug, parentId: input.parentId ?? null,
       isPromo: input.isPromo ?? false, promoBadgeText: input.promoBadgeText ?? null,
-      displayOrder: input.displayOrder ?? 0,
+      displayOrder: input.displayOrder ?? 0, icon: input.icon ?? null,
     },
   });
   await writeAudit({ userId, action: 'crear_categoria', entityType: 'category', entityId: cat.id, newValue: { name: cat.name, slug: cat.slug } });
@@ -135,7 +137,7 @@ export async function updateCategory(id: string, input: UpdateCategoryInput, use
     data: {
       name: input.name, slug: input.slug, parentId: input.parentId,
       isPromo: input.isPromo, promoBadgeText: input.promoBadgeText, displayOrder: input.displayOrder,
-      active: input.active,
+      active: input.active, icon: input.icon,
     },
   });
   await writeAudit({

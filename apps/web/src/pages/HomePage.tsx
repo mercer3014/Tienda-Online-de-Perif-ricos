@@ -4,6 +4,7 @@ import { useProducts, useCategoryTree } from '../hooks/catalog';
 import { ProductCard, ProductCardSkeleton } from '../components/ProductCard';
 import { EmptyState, ErrorState } from '../components/ui';
 import { usePageMeta } from '../components/Layout';
+import { getCategoryIconComponent } from '../lib/categoryIcons';
 
 export default function HomePage() {
   usePageMeta('', 'Periféricos gamer en Santa Cruz, Bolivia: mouse, teclados mecánicos y componentes. Pedidos por WhatsApp.');
@@ -35,21 +36,30 @@ export default function HomePage() {
         <section>
           <h2 className="mb-4 font-display text-xl uppercase tracking-wide text-txt-primary">Categorías</h2>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-            {categories.map((c) => (
-              <Link
-                key={c.id}
-                to={`/catalogo?categoria=${c.slug}`}
-                className="card flex flex-col items-center gap-1 p-4 text-center transition-colors hover:border-neon-purple/60"
-              >
-                <span className="text-sm font-semibold text-txt-primary">{c.name}</span>
-                {c.isPromo && c.promoBadgeText && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-neon-green/15 px-2 py-0.5 text-xs font-bold text-neon-green">
-                    <Sparkles className="h-3 w-3" /> {c.promoBadgeText}
+            {categories.map((c) => {
+              const Icon = getCategoryIconComponent(c.icon);
+              return (
+                <Link
+                  key={c.id}
+                  to={`/catalogo?categoria=${c.slug}`}
+                  className="card group relative flex flex-col items-center gap-2 p-4 text-center transition-all duration-300 hover:-translate-y-1 hover:border-neon-purple/60 hover:shadow-neon-purple active:translate-y-0 active:scale-95"
+                >
+                  <span className="flex h-12 w-12 items-center justify-center rounded-full bg-neon-purple/10 text-neon-purple-bright transition-all duration-300 group-hover:scale-110 group-hover:bg-neon-purple/20">
+                    <Icon className="h-6 w-6" />
                   </span>
-                )}
-                <span className="text-xs text-txt-faint">{c.productCount ?? 0} productos</span>
-              </Link>
-            ))}
+                  <span className="text-sm font-semibold text-txt-primary transition-colors group-hover:text-neon-purple-bright">
+                    {c.name}
+                  </span>
+                  {c.isPromo && c.promoBadgeText && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-neon-green/15 px-2 py-0.5 text-xs font-bold text-neon-green">
+                      <Sparkles className="h-3 w-3" /> {c.promoBadgeText}
+                    </span>
+                  )}
+                  <span className="text-xs text-txt-faint">{c.productCount ?? 0} productos</span>
+                  <ArrowRight className="absolute bottom-3 right-3 h-3.5 w-3.5 -translate-x-1 text-neon-purple-bright opacity-0 transition-all duration-300 group-hover:translate-x-0 group-hover:opacity-100" />
+                </Link>
+              );
+            })}
           </div>
         </section>
       )}

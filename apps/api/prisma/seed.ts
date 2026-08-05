@@ -35,6 +35,7 @@ const PERMISSIONS: { key: string; description: string }[] = [
   { key: 'ver_auditoria', description: 'Ver la bitacora de auditoria' },
   { key: 'gestionar_usuarios', description: 'Alta/baja de usuarios del panel' },
   { key: 'gestionar_roles', description: 'Configurar la matriz de permisos por rol' },
+  { key: 'gestionar_configuracion', description: 'Configurar datos generales de la tienda (numero de WhatsApp, etc.)' },
 ];
 const ALL_KEYS = PERMISSIONS.map((p) => p.key);
 const ROLE_MATRIX: Record<string, string[]> = {
@@ -43,6 +44,7 @@ const ROLE_MATRIX: Record<string, string[]> = {
     'ver_dashboard', 'crear_producto', 'editar_producto', 'eliminar_producto', 'editar_precio',
     'editar_stock', 'gestionar_imagenes', 'crear_categoria', 'editar_categoria', 'modificar_categoria',
     'eliminar_categoria', 'ver_pedidos', 'cambiar_estado_pedido', 'ver_metricas', 'ver_auditoria',
+    'gestionar_configuracion',
   ],
   'Encargado de Stock': [
     'ver_dashboard', 'crear_producto', 'editar_producto', 'editar_precio', 'editar_stock',
@@ -264,7 +266,6 @@ async function main() {
       mallName: 'Ventura Mall', address: 'Av. San Martin, Equipetrol, Santa Cruz de la Sierra',
       passageNumber: 'Pasaje 3', localeNumber: 'Local 214', latitude: -17.7592, longitude: -63.1975,
       googleMapsUrl: 'https://maps.google.com/?q=-17.7592,-63.1975',
-      wazeUrl: 'https://waze.com/ul?ll=-17.7592,-63.1975&navigate=yes',
     },
   });
 

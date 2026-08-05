@@ -77,6 +77,9 @@ export function ProductCard({ product }: { product: ProductListItemDTO }) {
               </span>
             )}
           </div>
+          {!outOfStock && !needsOptions && (
+            <p className="mt-1 text-xs text-txt-faint">{product.defaultVariantStock} en stock</p>
+          )}
         </div>
       </Link>
 

@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import clsx from 'clsx';
-import { AlertTriangle, PackageSearch } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Info, PackageSearch, XCircle } from 'lucide-react';
 import { assetUrl } from '../lib/api';
+import { useToast } from '../lib/toast';
 
 export function Spinner({ className }: { className?: string }) {
   return (
@@ -53,6 +54,40 @@ export function EmptyState({
           {action.label}
         </button>
       )}
+    </div>
+  );
+}
+
+const TOAST_ICON = { success: CheckCircle2, error: XCircle, info: Info } as const;
+const TOAST_CIRCLE_CLASS = {
+  success: 'bg-status-stock/12 text-status-stock',
+  error: 'bg-status-out/12 text-status-out',
+  info: 'bg-neon-purple/12 text-neon-purple-bright',
+} as const;
+
+/** Notificacion flotante centrada, icono en circulo + texto (mismo lenguaje
+ * visual que los dialogos de confirmacion, no una notificacion de esquina). */
+export function Toaster() {
+  const toasts = useToast((s) => s.toasts);
+  const dismiss = useToast((s) => s.dismiss);
+  return (
+    <div className="pointer-events-none fixed inset-0 z-[100] flex flex-col items-center justify-center gap-3 p-4">
+      {toasts.map((t) => {
+        const Icon = TOAST_ICON[t.type];
+        return (
+          <div
+            key={t.id}
+            onClick={() => dismiss(t.id)}
+            role="status"
+            className="toast-pop card pointer-events-auto flex w-full max-w-sm cursor-pointer items-start gap-3 p-5"
+          >
+            <span className={clsx('mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full', TOAST_CIRCLE_CLASS[t.type])}>
+              <Icon className="h-5 w-5" />
+            </span>
+            <p className="min-w-0 flex-1 pt-1.5 text-sm font-medium text-txt-primary">{t.message}</p>
+          </div>
+        );
+      })}
     </div>
   );
 }

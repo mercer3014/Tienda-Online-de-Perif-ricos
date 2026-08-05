@@ -16,6 +16,7 @@ import MetricsPage from './pages/MetricsPage';
 import AuditPage from './pages/AuditPage';
 import RolesPage from './pages/RolesPage';
 import UsersPage from './pages/UsersPage';
+import ConfiguracionPage from './pages/ConfiguracionPage';
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } },
@@ -55,6 +56,7 @@ export default function App() {
           <Route path="/auditoria" element={<Guard anyOf={['ver_auditoria']}><AuditPage /></Guard>} />
           <Route path="/roles" element={<Guard anyOf={['gestionar_roles']}><RolesPage /></Guard>} />
           <Route path="/usuarios" element={<Guard anyOf={['gestionar_usuarios']}><UsersPage /></Guard>} />
+          <Route path="/configuracion" element={<Guard anyOf={['gestionar_configuracion']}><ConfiguracionPage /></Guard>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
