@@ -2,7 +2,7 @@ import { useMemo, useRef, useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Search, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useAttributes, useProducts, useCategoryTree } from '../hooks/catalog';
-import { ProductCard, ProductCardSkeleton } from '../components/ProductCard';
+import { ProductCardSkeleton, RevealedProductCard } from '../components/ProductCard';
 import { EmptyState, ErrorState, Spinner } from '../components/ui';
 import { usePageMeta } from '../components/Layout';
 import { useDismissable } from '../lib/useDismissable';
@@ -281,7 +281,7 @@ export default function CatalogPage() {
           ) : (
             <>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                {data?.items.map((p) => <ProductCard key={p.id} product={p} />)}
+                {data?.items.map((p, i) => <RevealedProductCard key={p.id} product={p} index={i} />)}
               </div>
 
               {/* Paginacion */}

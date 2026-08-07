@@ -6,6 +6,7 @@ import { useAuth } from '../store/auth';
 import { useMetrics, useOrders } from '../hooks/admin';
 import { PageLoader, StockPill } from '../components/shared';
 import { formatBs, formatDateTime } from '../lib/format';
+import { useCountUp } from '../lib/useCountUp';
 
 const statusColor: Record<OrderStatusT, string> = {
   pendiente: 'text-status-low',
@@ -35,10 +36,10 @@ export default function DashboardPage() {
           <PageLoader />
         ) : data ? (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <StatCard icon={Eye} label="Producto más visto" value={data.mostViewed[0]?.name ?? '—'} sub={`${data.mostViewed[0]?.count ?? 0} vistas`} />
-            <StatCard icon={ShoppingBag} label="Más agregado al carrito" value={data.mostAddedToCart[0]?.name ?? '—'} sub={`${data.mostAddedToCart[0]?.count ?? 0} veces`} />
-            <StatCard icon={AlertTriangle} label="Alertas de stock" value={String(data.lowStock.length)} sub="variantes bajo/agotado" tone="warn" />
-            <StatCard icon={TrendingDown} label="Abandono de carrito" value={`${Math.round(data.cartAbandonment.rate * 100)}%`} sub={`${data.cartAbandonment.addToCart} al carrito`} tone="warn" />
+            <StatCard delay={0} icon={Eye} label="Producto más visto" value={data.mostViewed[0]?.name ?? '—'} sub={`${data.mostViewed[0]?.count ?? 0} vistas`} />
+            <StatCard delay={0.06} icon={ShoppingBag} label="Más agregado al carrito" value={data.mostAddedToCart[0]?.name ?? '—'} sub={`${data.mostAddedToCart[0]?.count ?? 0} veces`} />
+            <StatCard delay={0.12} icon={AlertTriangle} label="Alertas de stock" numeric={data.lowStock.length} sub="variantes bajo/agotado" tone="warn" />
+            <StatCard delay={0.18} icon={TrendingDown} label="Abandono de carrito" numeric={Math.round(data.cartAbandonment.rate * 100)} format={(n) => `${n}%`} sub={`${data.cartAbandonment.addToCart} al carrito`} tone="warn" />
           </div>
         ) : null
       ) : (
@@ -127,14 +128,39 @@ export default function DashboardPage() {
   );
 }
 
-function StatCard({ icon: Icon, label, value, sub, tone }: { icon: React.ComponentType<{ className?: string }>; label: string; value: string; sub: string; tone?: 'warn' }) {
+/**
+ * `value` es texto libre (ej. nombre de producto); `numeric` es para valores
+ * genuinamente numericos, que entran contando desde 0 en vez de aparecer de
+ * golpe (ver useCountUp). Nunca los dos a la vez: numeric gana si esta.
+ */
+function StatCard({
+  icon: Icon,
+  label,
+  value,
+  numeric,
+  format = String,
+  sub,
+  tone,
+  delay = 0,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  value?: string;
+  numeric?: number;
+  format?: (n: number) => string;
+  sub: string;
+  tone?: 'warn';
+  delay?: number;
+}) {
+  const counted = useCountUp(numeric ?? 0);
+  const display = numeric != null ? format(counted) : value;
   return (
-    <div className="card p-4">
+    <div className="stat-in card p-4" style={{ '--stat-delay': `${delay}s` } as React.CSSProperties}>
       <div className="flex items-center justify-between text-txt-faint">
         <p className="text-xs uppercase tracking-wide">{label}</p>
         <Icon className={`h-4 w-4 ${tone === 'warn' ? 'text-status-low' : 'text-neon-purple-bright'}`} />
       </div>
-      <p className={`mt-2 truncate font-display text-xl font-bold ${tone === 'warn' ? 'text-status-low' : 'text-txt-primary'}`}>{value}</p>
+      <p className={`mt-2 truncate font-display text-xl font-bold tabular-nums ${tone === 'warn' ? 'text-status-low' : 'text-txt-primary'}`}>{display}</p>
       <p className="mt-0.5 text-xs text-txt-muted">{sub}</p>
     </div>
   );

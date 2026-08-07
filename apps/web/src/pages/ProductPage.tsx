@@ -6,6 +6,7 @@ import { useProduct, useProducts, trackEvent } from '../hooks/catalog';
 import { useCart } from '../store/cart';
 import { assetUrl } from '../lib/api';
 import { formatBs } from '../lib/format';
+import { flyToCart } from '../lib/flyToCart';
 import { ErrorState, ProductImg, Spinner } from '../components/ui';
 import { ProductCard } from '../components/ProductCard';
 import { usePageMeta } from '../components/Layout';
@@ -85,7 +86,7 @@ export default function ProductPage() {
     ...(activeVariant?.attributes ?? []).map((a) => ({ label: a.attribute, value: a.value })),
   ];
 
-  const handleAdd = () => {
+  const handleAdd = (e: React.MouseEvent<HTMLButtonElement>) => {
     if (!activeVariant) return;
     addItem({
       variantId: activeVariant.id,
@@ -98,6 +99,7 @@ export default function ProductPage() {
       maxStock: activeVariant.stockQuantity,
     });
     trackEvent(product.id, 'add_to_cart');
+    flyToCart(e.currentTarget);
     setAdded(true);
     setTimeout(() => setAdded(false), 1500);
   };
@@ -115,7 +117,7 @@ export default function ProductPage() {
       <div className="grid gap-8 lg:grid-cols-2">
         {/* Galeria */}
         <div>
-          <div className="card aspect-square overflow-hidden bg-shot p-6">
+          <div className="card shine-surface aspect-square overflow-hidden bg-shot p-6">
             <ProductImg
               url={product.images[activeImage]?.urlWebp ?? product.primaryImage}
               alt={product.name}
@@ -141,7 +143,7 @@ export default function ProductPage() {
         {/* Info */}
         <div>
           {product.brand && <span className="text-sm uppercase tracking-wide text-txt-faint">{product.brand}</span>}
-          <h1 className="font-display text-2xl font-bold text-txt-primary sm:text-3xl">{product.name}</h1>
+          <h1 className="text-shine font-display text-2xl font-bold sm:text-3xl">{product.name}</h1>
           <div className="mt-3 flex flex-wrap items-center gap-3">
             <span className="font-display text-3xl font-bold text-txt-primary">
               {formatBs(activeVariant?.price ?? product.fromPrice)}
@@ -151,7 +153,7 @@ export default function ProductPage() {
                 <span className="text-lg text-txt-faint line-through">
                   {formatBs(product.originalPrice)}
                 </span>
-                <span className="rounded-full border border-status-low/50 bg-status-low/10 px-2 py-0.5 text-xs font-bold text-status-low">
+                <span className="badge-pulse rounded-full border border-status-low/50 bg-status-low/10 px-2 py-0.5 text-xs font-bold text-status-low">
                   -{Math.round((1 - product.fromPrice / product.originalPrice) * 100)}%
                 </span>
               </>

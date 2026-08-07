@@ -6,6 +6,7 @@ import type { CategoryNode } from '@villano/shared-types';
 import { useCart } from '../store/cart';
 import { useCategoryTree, useStoreStatus } from '../hooks/catalog';
 import { formatWhatsappNumber } from '../lib/format';
+import { useBump } from '../lib/useBump';
 import { CartBar } from './CartBar';
 import { CartDrawer } from './CartDrawer';
 import { Spinner } from './ui';
@@ -41,6 +42,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
   useDismissable(menuOpen, () => setMenuOpen(false));
   const count = useCart((s) => s.count());
   const openCart = useCart((s) => s.open);
+  const cartBumping = useBump(count);
   const { data: categories, isLoading: catLoading } = useCategoryTree();
   const { data: storeStatus } = useStoreStatus();
 
@@ -79,13 +81,16 @@ export function Layout({ children }: { children: React.ReactNode }) {
           <div className="ml-auto flex items-center gap-3 sm:ml-2">
             <ThemeToggle />
             <button
+              id="cart-icon"
               onClick={openCart}
               className="relative inline-flex items-center gap-1.5 rounded-md border border-neon-purple/50 px-3 py-2 text-neon-purple-bright hover:bg-neon-purple/15 hover:shadow-neon-purple transition-all"
               aria-label={`Carrito, ${count} artículos`}
             >
               <ShoppingCart className="h-4 w-4" />
               {count > 0 && (
-                <span className="absolute -right-2 -top-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-neon-green px-1 text-xs font-bold text-base-black">
+                <span
+                  className={`absolute -right-2 -top-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-neon-green px-1 text-xs font-bold text-base-black ${cartBumping ? 'cart-bump' : ''}`}
+                >
                   {count}
                 </span>
               )}

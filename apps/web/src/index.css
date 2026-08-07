@@ -168,8 +168,15 @@ body.light,
     @apply w-full rounded-md border border-base-border bg-base-void px-3 py-2 text-txt-primary placeholder:text-txt-faint focus:border-neon-purple;
   }
   .skeleton {
-    @apply animate-pulse rounded;
-    background-color: rgb(var(--color-base-border) / 0.6);
+    @apply rounded;
+    background: linear-gradient(
+      100deg,
+      rgb(var(--color-base-border) / 0.45) 30%,
+      rgb(var(--color-base-border) / 0.9) 50%,
+      rgb(var(--color-base-border) / 0.45) 70%
+    );
+    background-size: 220% 100%;
+    animation: skeleton-shimmer 1.6s ease-in-out infinite;
   }
 
   /* ---- Badges de estado (mismos colores en todo el sistema) ---- */
@@ -213,4 +220,184 @@ body.light,
 ::view-transition-new(root) {
   animation: none;
   mix-blend-mode: normal;
+}
+
+/* Shimmer del skeleton (ver .skeleton en @layer components). */
+@keyframes skeleton-shimmer {
+  0% { background-position: 140% 0; }
+  100% { background-position: -40% 0; }
+}
+
+/* ---------------------------------------------------------------------
+   Catalogo: revelado al hacer scroll. .reveal arranca invisible/corrido;
+   un IntersectionObserver (ver lib/useReveal.ts) agrega .reveal-in cuando
+   el elemento entra en pantalla. El delay lo pone cada item via --reveal-delay
+   para que una grilla entre escalonada en vez de toda junta.
+   --------------------------------------------------------------------- */
+.reveal {
+  opacity: 0;
+  transform: translateY(22px);
+  transition: opacity 0.6s cubic-bezier(0.2, 0.8, 0.2, 1), transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+  transition-delay: var(--reveal-delay, 0s);
+}
+.reveal-in {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ---------------------------------------------------------------------
+   Brillo periodico tipo "linterna" cruzando una imagen: una franja
+   diagonal que barre cada tanto (no en loop apurado). Se agrega sobre
+   cualquier contenedor con position:relative + overflow:hidden.
+   --------------------------------------------------------------------- */
+@keyframes shine-sweep {
+  0%, 58% { transform: translateX(-130%) skewX(-18deg); }
+  100% { transform: translateX(230%) skewX(-18deg); }
+}
+.shine-surface {
+  position: relative;
+  overflow: hidden;
+}
+.shine-surface::after {
+  content: '';
+  position: absolute;
+  inset: -20% 0;
+  width: 32%;
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.25), transparent);
+  transform: translateX(-130%) skewX(-18deg);
+  animation: shine-sweep 5.5s ease-in-out infinite;
+  animation-delay: var(--shine-delay, 0s);
+  pointer-events: none;
+}
+html.light .shine-surface::after {
+  background: linear-gradient(90deg, transparent, rgb(124 58 237 / 0.16), transparent);
+}
+
+/* Mismo gesto de luz pasando, pero sobre texto (letras con reflejo). */
+@keyframes text-shine {
+  0%, 58% { background-position: 160% center; }
+  100% { background-position: -60% center; }
+}
+.text-shine {
+  /* --shine-base = color "de base" de la letra (default: texto primario);
+     pasale otro valor inline para palabras de acento (violeta/verde), asi
+     el barrido de luz no les borra el color propio. No se puede usar
+     currentColor aca: esta misma regla pone color:transparent, y
+     currentColor leeria ese transparent en vez del color original. */
+  background-image: linear-gradient(100deg, var(--shine-base, rgb(var(--color-txt-primary))) 42%, #fff 50%, var(--shine-base, rgb(var(--color-txt-primary))) 58%);
+  background-size: 240% auto;
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  animation: text-shine 5.5s ease-in-out infinite;
+  animation-delay: var(--shine-delay, 0s);
+}
+
+/* Entrada del titular del hero, palabra por palabra (ver HomePage.tsx).
+   .word-in-shine ademas deja el brillo tipo "linterna" prendido en loop una
+   vez que termina de entrar, para las 1-2 palabras de acento. */
+@keyframes word-in {
+  from { transform: translateY(115%); }
+  to { transform: translateY(0); }
+}
+.word-mask {
+  display: inline-block;
+  overflow: hidden;
+  vertical-align: top;
+}
+.word-in {
+  display: inline-block;
+  animation: word-in 0.65s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: var(--word-delay, 0ms);
+}
+.word-in-shine {
+  display: inline-block;
+  background-image: linear-gradient(100deg, var(--shine-base, rgb(var(--color-txt-primary))) 42%, #fff 50%, var(--shine-base, rgb(var(--color-txt-primary))) 58%);
+  background-size: 240% auto;
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  animation-name: word-in, text-shine;
+  animation-duration: 0.65s, 5.5s;
+  animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1), ease-in-out;
+  animation-iteration-count: 1, infinite;
+  animation-fill-mode: both, none;
+  animation-delay: var(--word-delay, 0ms), calc(var(--word-delay, 0ms) + 700ms);
+}
+
+/* Anillo de eco detras de un badge (promo/descuento): usa currentColor asi
+   toma el mismo tono que ya tiene el badge, sin hardcodear otro color. */
+.badge-pulse {
+  position: relative;
+}
+.badge-pulse::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: currentColor;
+  z-index: -1;
+  animation: badge-pulse-ring 2.2s cubic-bezier(0.2, 0.6, 0.3, 1) infinite;
+}
+@keyframes badge-pulse-ring {
+  0% { opacity: 0.45; transform: scale(1); }
+  100% { opacity: 0; transform: scale(2); }
+}
+
+/* Entrada de la barra flotante del carrito (CartBar.tsx) al montarse, en vez
+   de aparecer de golpe cuando se agrega el primer producto. */
+@keyframes cart-bar-in {
+  from { transform: translateY(100%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.cart-bar-in {
+  animation: cart-bar-in 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* Rebote del contador del carrito al agregar un producto (ver lib/useBump.ts). */
+@keyframes cart-bump {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.4); }
+  60% { transform: scale(0.9); }
+  100% { transform: scale(1); }
+}
+.cart-bump {
+  animation: cart-bump 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Inclinacion magnetica de los iconos de categoria (ver HomePage.tsx). */
+.tilt-card {
+  transition: transform 0.15s ease, border-color 0.2s ease;
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton,
+  .shine-surface::after,
+  .text-shine,
+  .word-in,
+  .word-in-shine,
+  .badge-pulse::after,
+  .cart-bump,
+  .cart-bar-in,
+  .tilt-card {
+    animation: none !important;
+    transition: none !important;
+  }
+  .reveal {
+    transition: none !important;
+  }
+  .word-in,
+  .word-in-shine {
+    transform: none !important;
+  }
+  .text-shine,
+  .word-in-shine {
+    background: none;
+    color: var(--shine-base, inherit);
+    -webkit-text-fill-color: var(--shine-base, inherit);
+  }
 }

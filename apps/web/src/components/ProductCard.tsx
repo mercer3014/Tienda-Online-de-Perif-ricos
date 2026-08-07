@@ -4,6 +4,8 @@ import type { ProductListItemDTO } from '@villano/shared-types';
 import { useCart } from '../store/cart';
 import { trackEvent } from '../hooks/catalog';
 import { formatBs } from '../lib/format';
+import { flyToCart } from '../lib/flyToCart';
+import { useReveal } from '../lib/useReveal';
 import { ProductImg } from './ui';
 
 export function ProductCard({ product }: { product: ProductListItemDTO }) {
@@ -20,8 +22,11 @@ export function ProductCard({ product }: { product: ProductListItemDTO }) {
   const cartQty = product.defaultVariantId
     ? (items.find((i) => i.variantId === product.defaultVariantId)?.quantity ?? 0)
     : 0;
+  // Desfasa el brillo de la foto por producto (determinístico via el id) para
+  // que las tarjetas de una grilla no destellen todas en el mismo instante.
+  const shineDelay = ((product.id.charCodeAt(0) + product.id.charCodeAt(product.id.length - 1)) % 5) * 1.1;
 
-  const handleAdd = (e: React.MouseEvent) => {
+  const handleAdd = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     e.stopPropagation();
     if (needsOptions || !product.defaultVariantId) {
@@ -43,12 +48,16 @@ export function ProductCard({ product }: { product: ProductListItemDTO }) {
       { openDrawer: false },
     );
     trackEvent(product.id, 'add_to_cart');
+    flyToCart(e.currentTarget);
   };
 
   return (
     <div className="card group flex flex-col overflow-hidden transition-transform hover:-translate-y-1 hover:shadow-neon-purple">
       <Link to={`/producto/${product.slug}`} className="flex flex-1 flex-col">
-        <div className="relative aspect-square overflow-hidden bg-shot p-3">
+        <div
+          className="shine-surface relative aspect-square overflow-hidden bg-shot p-3"
+          style={{ '--shine-delay': `${shineDelay}s` } as React.CSSProperties}
+        >
           <ProductImg
             url={product.primaryImage}
             alt={product.name}
@@ -72,7 +81,7 @@ export function ProductCard({ product }: { product: ProductListItemDTO }) {
               </span>
             )}
             {onSale && (
-              <span className="rounded-full border border-status-low/50 bg-status-low/10 px-1.5 py-0.5 text-[11px] font-bold text-status-low">
+              <span className="badge-pulse rounded-full border border-status-low/50 bg-status-low/10 px-1.5 py-0.5 text-[11px] font-bold text-status-low">
                 -{discount}%
               </span>
             )}
@@ -116,6 +125,19 @@ export function ProductCard({ product }: { product: ProductListItemDTO }) {
           </button>
         )}
       </div>
+    </div>
+  );
+}
+
+/** ProductCard envuelta en el revelado por scroll (ver lib/useReveal.ts).
+ * `index` escalona la entrada de una grilla para que no aparezca toda junta;
+ * se repite cada 4 items (el ancho tipico de fila) para que el patron de
+ * "cascada" se note en vez de ir acumulando un delay cada vez mas largo. */
+export function RevealedProductCard({ product, index }: { product: ProductListItemDTO; index: number }) {
+  const reveal = useReveal<HTMLDivElement>((index % 4) * 70);
+  return (
+    <div ref={reveal.ref} className={reveal.className} style={reveal.style}>
+      <ProductCard product={product} />
     </div>
   );
 }

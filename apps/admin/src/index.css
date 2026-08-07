@@ -152,8 +152,15 @@ body.light,
     @apply w-full rounded-md border border-base-border bg-base-void px-3 py-2 text-txt-primary placeholder:text-txt-faint focus:border-neon-purple;
   }
   .skeleton {
-    @apply animate-pulse rounded;
-    background-color: rgb(var(--color-base-border) / 0.6);
+    @apply rounded;
+    background: linear-gradient(
+      100deg,
+      rgb(var(--color-base-border) / 0.45) 30%,
+      rgb(var(--color-base-border) / 0.9) 50%,
+      rgb(var(--color-base-border) / 0.45) 70%
+    );
+    background-size: 220% 100%;
+    animation: skeleton-shimmer 1.6s ease-in-out infinite;
   }
 
   .badge {
@@ -193,4 +200,30 @@ body.light,
 ::view-transition-new(root) {
   animation: none;
   mix-blend-mode: normal;
+}
+
+/* Shimmer del skeleton (ver .skeleton en @layer components). */
+@keyframes skeleton-shimmer {
+  0% { background-position: 140% 0; }
+  100% { background-position: -40% 0; }
+}
+
+/* Entrada de las tarjetas de estadisticas del Dashboard: sobria (fade +
+   subida chica), nada de brillos ni efectos de vitrina -esto es una
+   herramienta de trabajo, no el catalogo publico-. Cada tarjeta usa
+   --stat-delay para entrar en cascada en vez de todas juntas. */
+@keyframes stat-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.stat-in {
+  animation: stat-in 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation-delay: var(--stat-delay, 0s);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton,
+  .stat-in {
+    animation: none !important;
+  }
 }
